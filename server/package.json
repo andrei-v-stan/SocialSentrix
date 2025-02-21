@@ -1,0 +1,26 @@
+{
+  "name": "server",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server",
+    "start": "node server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "social media"
+  ],
+  "author": {
+    "name": "Stan Andrei",
+    "email": "andreistan9@gmail.com"
+  },
+  "license": "MIT License",
+  "copyright": "Copyright (c) 2025 Stan Andrei",
+  "type": "commonjs",
+  "description": "A social media analysis application",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "nodemon": "^3.1.9"
+  }
+}
