@@ -1,19 +1,24 @@
 const express = require('express');
 const path = require('path');
+const cors = require('cors');
 
-module.exports = function(app) {
-    // Development - Frontend Access
-    const cors = require('cors');
-    const corsOptions = {
-        origin: ["http://localhost:5173"],
-    };
-    app.use(cors(corsOptions));
-    // Development - Frontend Access
+// Development - Frontend Access
+exports.setupDevCors = function (app) {
+  const corsOptions = {
+    origin: ["http://localhost:5173"],
+    credentials: true
+  };
+  app.use(cors(corsOptions));
+  
+  app.get('/', (req, res) => {
+    res.redirect('http://localhost:5173/');
+  });
+};
 
-    // Deployment - Frontend Access
-    app.use(express.static(path.join(__dirname, '../../client/dist')));
-    app.get('/*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
-    });
-    // Deployment - Frontend Access
+// Deployment - Frontend Access
+exports.serveFrontend = function (app) {
+  app.use(express.static(path.join(__dirname, '../../client/dist')));
+  app.get('/*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+  });
 };

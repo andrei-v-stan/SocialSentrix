@@ -18,9 +18,20 @@
   "type": "commonjs",
   "description": "A social media analysis application",
   "dependencies": {
+    "@atproto/api": "^0.14.20",
     "axios": "^1.7.9",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "nodemon": "^3.1.9"
+    "geoip-lite": "^1.4.10",
+    "mongodb": "^6.15.0",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^6.10.1",
+    "nodemon": "^3.1.9",
+    "server": "file:",
+    "useragent": "^2.3.0",
+    "uuid": "^11.1.0"
   }
 }

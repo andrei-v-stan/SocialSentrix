@@ -1,0 +1,111 @@
+@reference "@/index.css";
+
+.submit-profile-container {
+    @apply w-full flex justify-center px-4;
+  }
+  
+  .submit-profile-card {
+    @apply border shadow-lg w-full max-w-2xl;
+    background-color: #121212;
+    border: 0;
+    padding: 20px;
+    box-shadow: rgba(255, 255, 255, 0.2) 0px 3px 8px;
+  }
+  
+  .submit-profile-header {
+    @apply text-center;
+  }
+  
+  .submit-profile-title {
+    @apply text-3xl text-foreground;
+    color: #d8d8d8;
+  }
+  
+  .submit-profile-content {
+    @apply space-y-6 flex flex-col items-center;
+  }
+  
+  .submit-profile-form {
+    @apply space-y-6 w-full flex flex-col items-center;
+  }
+  
+  .submit-profile-field {
+    @apply flex items-center gap-4 w-full max-w-md;
+  }
+  
+  .submit-profile-label {
+    @apply w-28 text-2xl font-bold;
+    color: #d8d8d8;
+  }
+  
+  .submit-profile-input,
+  .submit-profile-select,
+  .submit-profile-button {
+    @apply flex-1;
+    background-color: #f3f4f6;
+    color: #1a1a1a;
+    border-radius: 0.5rem;
+    border: 1px solid #d1d5db;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .submit-profile-button {
+    border-color: #6495ff;
+    background-color: #e5e7eb;
+  }
+  
+  .submit-profile-button:hover {
+    background-color: #dbe0e4;
+    border-color: #6495ff;
+  }
+  
+  .submit-profile-error {
+    @apply text-red-500 mt-4;
+  }
+  
+  .profile-results {
+    @apply space-y-8 mt-10 w-full max-w-2xl;
+  }
+  
+  .profile-section {
+    margin-top: 2rem;
+  }
+  
+  .profile-section-box {
+    background-color: #1c1c1c;
+    border: 1px solid #333;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .profile-section-title {
+    @apply text-xl font-semibold mb-4 text-foreground;
+  }
+  
+  .profile-list {
+    @apply space-y-4;
+  }
+  
+  .profile-list-item {
+    background-color: #232323;
+    border: 1px solid #3a3a3a;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .profile-item-title {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+  }
+  
+  .profile-item-text {
+    color: #c4c4c4;
+  }
+  
+  .profile-empty-text {
+    color: #a0a0a0;
+  }
+  

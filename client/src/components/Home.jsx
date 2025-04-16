@@ -1,7 +1,9 @@
+import SubmitProfile from './subcomponents/SubmitProfile.jsx';
+
 export default function Home() {
-    return (
-      <div>
-        <h2>Welcome to the Home Page!</h2>
-      </div>
-    );
+  return (
+    <div>
+      <SubmitProfile />
+    </div>
+  );
 }

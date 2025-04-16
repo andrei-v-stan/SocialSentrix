@@ -15,7 +15,7 @@ export default function Test() {
 
     return (
       <div>
-        <h2>Welcome to the Test Page?</h2>
+        <h2>Welcome to the Test Page</h2>
         <p>{data ? JSON.stringify(data) : 'Loading...'}</p>
       </div>
     );
