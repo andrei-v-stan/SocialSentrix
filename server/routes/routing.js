@@ -7,6 +7,4 @@ router.use('/api/bluesky', require('./bluesky'));
 router.use('/api/reddit', require('./reddit'));
 router.use('/api/mongodb', require('./mongodb'));
 
-router.use('/api', require('../tests/testMongoDBAcc.js'));
-
 module.exports = router;

@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.get('/get-account-email', async (req, res) => {
   const { userID } = req.query;
-  console.log(userID)
+  
   if (!userID) return res.status(400).json({ error: 'Missing userID.' });
 
   try {
