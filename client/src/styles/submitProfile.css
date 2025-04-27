@@ -109,3 +109,30 @@
     color: #a0a0a0;
   }
   
+
+  .submit-profile-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    z-index: 100;
+    max-height: 150px;
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  }
+  
+  .submit-profile-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .submit-profile-suggestion:hover {
+    background-color: #f2f2f2;
+  }
+  

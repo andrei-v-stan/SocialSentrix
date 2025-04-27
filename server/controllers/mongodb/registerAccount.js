@@ -1,11 +1,10 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
-const connectMongo = require('../../services/mongo');
-
+const { getDb, dbAccounts, dbPendingConfirmations } = require('../../services/mongo');
 const router = express.Router();
 
-router.post('/register-account', async (req, res) => {
+router.post('/', async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -13,19 +12,20 @@ router.post('/register-account', async (req, res) => {
   }
 
   try {
-    const db = await connectMongo();
+    const db = getDb();
 
-    const existing = await db.collection(process.env.MONGO_COLLECTION_ACCOUNTS).findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = await db.collection(dbAccounts).findOne({ email: cleanEmail });
     if (existing) {
       return res.status(409).json({ error: 'Email already registered.' });
     }
 
     const token = uuidv4();
     const createdAt = new Date();
-    
-    await db.collection(process.env.MONGO_COLLECTION_PENDING_CONFIRMATIONS).insertOne({
+
+    await db.collection(dbPendingConfirmations).insertOne({
       token,
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       createdAt
     });
 
@@ -48,7 +48,7 @@ router.post('/register-account', async (req, res) => {
 
     await transporter.sendMail({
       from: '"SocialSentrix" <noreply@socialsentrix.com>',
-      to: email,
+      to: cleanEmail,
       subject: 'Confirm your SocialSentrix account',
       html: `
         <h2>Hi there!</h2>
@@ -60,12 +60,12 @@ router.post('/register-account', async (req, res) => {
         </h3>
         <a href="${confirmationUrl}" style="margin: 0 15px; padding: 15px; background: #1e4396; color: white; border-radius: 4px; text-decoration: none; font-weight:bold; font-family: Arial, Helvetica, sans-serif;">Confirm My Account</a>
         <h4 style="color:red; margin: 35px 0;">If you did not initiate this request, please ignore this email.</h4>
-      `    
+      `
     });
 
     return res.status(200).json({ message: 'Confirmation email sent.' });
   } catch (err) {
-    console.error('Registration error:', err);
+    console.error('❌ Registration error:', err);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 });

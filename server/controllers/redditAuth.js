@@ -1,5 +1,7 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const querystring = require('querystring');
+const { ObjectId } = require('mongodb');
+const { getDb, dbAccounts } = require('../services/mongo');
 
 const CLIENT_ID = process.env.REDDIT_CLIENT_ID;
 const CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET;
@@ -62,20 +64,43 @@ exports.handleRedditCallback = async (req, res) => {
       }
     });
     const meData = await meRes.json();
-    const currentUsername = meData.name;
+    const currentUsername = meData.name.toLowerCase();
 
-    res.cookie('reddit_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
-      maxAge: 3600000
-    });
-    res.cookie('reddit_user', currentUsername, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
-      maxAge: 3600000
-    });
+    const userID = req.cookies.userID;
+    if (userID) {
+      const db = getDb();
+      const accounts = db.collection(dbAccounts);
+    
+      const userAccount = await accounts.findOne({ id: userID });
+    
+      if (userAccount) {
+        const ownedProfileIndex = userAccount.ownedProfiles?.findIndex(
+          (p) => p.platform === 'reddit' && p.user === currentUsername
+        );
+        
+        if (ownedProfileIndex === -1 || ownedProfileIndex === undefined) {
+          await accounts.updateOne(
+            { id: userID },
+            {
+              $push: {
+                ownedProfiles: {
+                  platform: 'reddit',
+                  user: currentUsername,
+                  reddit_token: accessToken
+                }
+              }
+            }
+          );
+        } else {
+          const profileKey = `ownedProfiles.${ownedProfileIndex}.reddit_token`;
+          await accounts.updateOne(
+            { id: userID },
+            { $set: { [profileKey]: accessToken } }
+          );
+        }
+        
+      }
+    }    
 
     const redirectUrl = retryInput
       ? `${redirectTo}?input=${encodeURIComponent(retryInput)}`
@@ -83,20 +108,15 @@ exports.handleRedditCallback = async (req, res) => {
 
     res.redirect(redirectUrl);
   } catch (err) {
-    console.error('OAuth error:', err.message);
+    console.error('❌ OAuth error:', err);
     res.status(500).json({ error: 'OAuth failed', details: err.message });
   }
 };
 
 exports.getRedditSession = (req, res) => {
   const token = req.cookies.reddit_token;
-  const username = req.cookies.reddit_user;
-  if (!token || !username) {
+  if (!token) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  res.json({ token, username });
-};
-
-exports.testRedirect = (req, res) => {
-  res.redirect('https://www.google.com');
+  res.json({ token });
 };

@@ -1,0 +1,269 @@
+.resulted-data-container.sortable {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  align-items: center;
+}
+
+.result-window {
+  width: 100%;
+  max-width: 800px;
+  background-color: #1e1e1e;
+  color: #eaeaea;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.result-window.minimized .window-content {
+  display: none;
+}
+
+.result-window.maximized {
+  position: fixed !important;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100% !important;
+  height: 100vh !important;
+  border-radius: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.window-bar {
+  background-color: #2c2c2c;
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  color: white;
+  cursor: grab;
+  user-select: none;
+}
+
+.window-bar:active {
+  cursor: grabbing;
+}
+
+.window-title {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.window-controls button {
+  margin-left: 0.5rem;
+  font-size: 1.4rem;
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.window-controls button:hover {
+  color: #fff;
+}
+
+.window-content {
+  flex: 1;
+  padding: 1rem;
+  background-color: #121212;
+  border-top: 1px solid #333;
+  overflow: auto;
+}
+
+.chart-block {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  padding: 1rem;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.chart-inner {
+  min-width: 800px;
+}
+
+.recharts-tooltip-wrapper {
+  z-index: 100;
+}
+
+.recharts-default-tooltip {
+  background: #1e1e1e !important;
+  border: 1px solid #444 !important;
+  border-radius: 8px !important;
+  padding: 0.75rem !important;
+  color: #eee !important;
+  font-size: 0.85rem;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.recharts-tooltip-item {
+  color: #ccc !important;
+}
+
+.chart-block::-webkit-scrollbar {
+  height: 8px;
+}
+.chart-block::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+.chart-block::-webkit-scrollbar-track {
+  background: #222;
+}
+
+
+
+.chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.chart-controls button {
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #2d2d2d;
+  color: #ccc;
+  border: 1px solid #444;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.chart-controls button.active {
+  background: #8884d8;
+  color: white;
+  font-weight: bold;
+}
+
+.chart-metric-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.chart-metric-selector button {
+  padding: 4px 8px;
+  background: #2d2d2d;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.chart-metric-selector button.active {
+  background: #444;
+  color: white;
+  border-color: #666;
+}
+
+.point-details {
+  background: #1e1e1e;
+  color: #eee;
+  border: 1px solid #444;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+}
+
+.point-details .point-entry {
+  margin-bottom: 1rem;
+}
+
+.point-details pre {
+  background: #111;
+  color: #ccc;
+  padding: 0.5rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.restore-graphs-button {
+  margin-top: 1rem;
+  padding: 8px 16px;
+  background: #333;
+  border: 1px solid #555;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.restore-graphs-button:hover {
+  background: #555;
+}
+
+.date-pickers {
+  display: flex;
+  gap: 1rem;
+  margin: 0.5rem 0 1rem 0;
+  flex-wrap: wrap;
+}
+
+.single-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.single-picker label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ccc;
+  margin-bottom: 0.25rem;
+}
+
+.empty-chart {
+  background: #1e1e1e;
+  border: 1px dashed #444;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.zoom-controls button {
+  background: #2d2d2d;
+  border: 1px solid #444;
+  color: #ccc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.zoom-controls button:hover {
+  background: #444;
+}
+
+.zoom-controls input {
+  width: 60px;
+  text-align: center;
+  background: #1e1e1e;
+  color: #eee;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.window-controls button.active {
+  background-color: #3b82f6;
+  color: white;
+}

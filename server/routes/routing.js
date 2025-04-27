@@ -7,4 +7,7 @@ router.use('/api/bluesky', require('./bluesky'));
 router.use('/api/reddit', require('./reddit'));
 router.use('/api/mongodb', require('./mongodb'));
 
+router.use('/api/submit-profile', require('./submitProfile'));
+
+
 module.exports = router;

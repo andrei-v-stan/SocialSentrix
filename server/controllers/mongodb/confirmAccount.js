@@ -1,10 +1,9 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const connectMongo = require('../../services/mongo');
-
+const { getDb, dbAccounts, dbPendingConfirmations } = require('../../services/mongo');
 const router = express.Router();
 
-router.get('/confirm-account', async (req, res) => {
+router.get('/', async (req, res) => {
   const { token } = req.query;
 
   if (!token) {
@@ -12,9 +11,9 @@ router.get('/confirm-account', async (req, res) => {
   }
 
   try {
-    const db = await connectMongo();
-    const pendingCollection = db.collection(process.env.MONGO_COLLECTION_PENDING_CONFIRMATIONS);
-    const accountsCollection = db.collection(process.env.MONGO_COLLECTION_ACCOUNTS);
+    const db = getDb();
+    const pendingCollection = db.collection(dbPendingConfirmations);
+    const accountsCollection = db.collection(dbAccounts);
 
     const pending = await pendingCollection.findOne({ token });
 
@@ -29,7 +28,7 @@ router.get('/confirm-account', async (req, res) => {
 
     if (diff > oneHour) {
       await pendingCollection.deleteOne({ token });
-      return res.status(410).send(`<h2>❌ The confirmation link has expired, please register again <a href="${process.env.VITE_API_URL}">here</a>.</h2>`);
+      return res.status(410).send(`<h2>❌ The confirmation link has expired. Please register again <a href="${process.env.VITE_API_URL}">here</a>.</h2>`);
     }
 
     const newAccount = {
@@ -49,7 +48,7 @@ router.get('/confirm-account', async (req, res) => {
       <h3>You can now <a href="${process.env.VITE_API_URL}">log in</a> and start analyzing profiles.</h3>
     `);
   } catch (err) {
-    console.error('Account confirmation failed:', err);
+    console.error('❌ Account confirmation failed:', err);
     return res.status(500).send('Internal server error.');
   }
 });

@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import Cookies from 'js-cookie';
 import {
   Input,
   Button,
@@ -11,17 +13,80 @@ import {
   SelectTrigger,
   SelectValue,
   SelectContent,
-  SelectItem,
+  SelectItem
 } from '@/components/ui/ui.js';
-
 import '@/styles/submitProfile.css';
 
-export default function SubmitProfile() {
+export default function SubmitProfile({ onResult }) {
   const [input, setInput] = useState('u/');
   const [platform, setPlatform] = useState('Reddit');
   const [token, setToken] = useState('');
-  const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const inputRef = useRef();
+
+  const cleanPlatformInput = (rawInput, platform) => {
+    switch (platform) {
+      case 'Reddit':
+        return rawInput.replace(/^u\//i, '').toLowerCase();
+      case 'Bluesky':
+        return rawInput.replace(/^@/, '').toLowerCase();
+      default:
+        return rawInput.replace(/^[@/]+/, '').toLowerCase();
+    }
+  };
+
+  const addPlatformPrefix = (username, platform) => {
+    switch (platform) {
+      case 'Reddit':
+        return `u/${username}`;
+      case 'Bluesky':
+        return `@${username}`;
+      default:
+        return username;
+    }
+  };
+
+  const handleSubmit = useCallback(async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+
+    setError('');
+    setShowDropdown(false);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/submit-profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ platform, input, token }),
+      });
+
+      const data = await response.json();
+
+      if (data.error || !data.posts || !data.comments) {
+        setError('Profile not found or does not exist.');
+      } else {
+        if (data.tokenInvalid == true) {
+          alert(`Your token for the account ${data.username} is invalid. Please sign in again to update the information.`);
+        }
+        onResult?.({
+          title: `${data.platform}: ${data.username}`,
+          content: {
+            posts: data.posts,
+            comments: data.comments,
+            upvotes: data.upvotes || [],
+            downvotes: data.downvotes || []
+          }
+        });
+      }    
+    } catch (error) {
+      console.error('Submit profile error:', error);
+      setError('Something went wrong while submitting the profile.');
+    }    
+  }, [platform, input, token, onResult]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -30,86 +95,87 @@ export default function SubmitProfile() {
     if (inputFromRedirect) {
       setInput(inputFromRedirect);
       window.history.replaceState({}, '', window.location.pathname);
+
+      fetch(`${import.meta.env.VITE_API_URL}/api/${platform.toLowerCase()}/session`, {
+        credentials: 'include',
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.token) {
+            setToken(data.token);
+            handleSubmit();
+          }
+        });
     }
+  }, [platform, handleSubmit]);
 
-    fetch(`${import.meta.env.VITE_API_URL}/api/reddit/session`, {
-      credentials: 'include',
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.token) {
-          setToken(data.token);
-        }
-        if (inputFromRedirect && data.token) {
-          submitProfile(inputFromRedirect, data.token);
-        }
-      });
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reddit/profile`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ platform, input, token }),
-    });
-
-    const data = await response.json();
-
-    if (
-      data.about === undefined &&
-      (!data.posts || !data.posts.length) &&
-      (!data.comments || !data.comments.length)
-    ) {
-      setError('Profile not found or does not exist.');
-      return;
-    }
-
-    setResult(data);
-  };
-
-  const handleRedditSignIn = () => {
+  const handleSignIn = () => {
     const redirect = window.location.pathname;
-    const loginURL = `${import.meta.env.VITE_API_URL}/api/reddit/auth?redirect=${encodeURIComponent(
+    const loginURL = `${import.meta.env.VITE_API_URL}/api/${platform.toLowerCase()}/auth?redirect=${encodeURIComponent(
       redirect
     )}&input=${encodeURIComponent(input)}`;
     window.location.href = loginURL;
   };
 
-  const renderSection = (title, items) => (
-    <section className="profile-section">
-      <div className="profile-section-box">
-        <h3 className="profile-section-title">{title}</h3>
-        {items && items.length ? (
-          <ul className="profile-list">
-            {items.map((item, idx) => (
-              <li key={idx} className="profile-list-item">
-                {item.title && <strong className="profile-item-title">{item.title}</strong>}
-                {item.text && <p className="profile-item-text">{item.text}</p>}
-                {item.upvotes !== undefined && <p>Upvotes: {item.upvotes}</p>}
-                {item.comments !== undefined && <p>Comments: {item.comments}</p>}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="profile-empty-text">No data found.</p>
-        )}
-      </div>
-    </section>
-  );
+  const handleInputFocus = async () => {
+    const userID = Cookies.get('userID');
+    if (!userID) return;
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/mongodb/get-user-profiles?platform=${encodeURIComponent(platform)}`,
+        { credentials: 'include' }
+      );
+      
+      const data = await res.json();
+
+      const owned = (data.ownedProfiles || []).map(u => ({ name: u, owned: true }));
+      const associated = (data.associatedProfiles || []).map(u => ({ name: u, owned: false }));
+
+      const combined = [...owned, ...associated];
+      const sorted = combined.sort((a, b) => a.name.localeCompare(b.name));
+      const cleanInput = cleanPlatformInput(input, platform);
+
+      const filtered = sorted.filter((s) =>
+        s.name.toLowerCase().includes(cleanInput)
+      );
+
+      setSuggestions(sorted);
+      setFilteredSuggestions(filtered);
+      setShowDropdown(true);
+    } catch {
+      // console.error(err);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInput(val);
+
+    const cleanInput = cleanPlatformInput(val, platform);
+
+    const filtered = suggestions.filter((s) =>
+      s.name.toLowerCase().includes(cleanInput)
+    );
+
+    setFilteredSuggestions(filtered);
+    setShowDropdown(true);
+  };
+
+  const handleSuggestionClick = (name) => {
+    const withPrefix = addPlatformPrefix(name, platform);
+    setInput(withPrefix);
+    setShowDropdown(false);
+  };
 
   return (
     <div className="submit-profile-container">
       <Card className="submit-profile-card">
         <CardHeader className="submit-profile-header">
-          <CardTitle className="submit-profile-title">
-            Submit a Social Media Profile
-          </CardTitle>
+          <CardTitle className="submit-profile-title">Submit a Social Media Profile</CardTitle>
         </CardHeader>
         <CardContent className="submit-profile-content">
-          <form onSubmit={handleSubmit} className="submit-profile-form">
+          <form onSubmit={handleSubmit} className="submit-profile-form" autoComplete="off">
             <div className="submit-profile-field">
               <Label htmlFor="platform" className="submit-profile-label">Platform</Label>
               <Select
@@ -117,6 +183,11 @@ export default function SubmitProfile() {
                 onValueChange={(val) => {
                   setPlatform(val);
                   setInput(val === 'Reddit' ? 'u/' : '');
+                  setToken('');
+                  setError('');
+                  setSuggestions([]);
+                  setFilteredSuggestions([]);
+                  setShowDropdown(false);
                 }}
               >
                 <SelectTrigger className="submit-profile-select">
@@ -132,40 +203,52 @@ export default function SubmitProfile() {
               </Select>
             </div>
 
-            <div className="submit-profile-field">
+            <div className="submit-profile-field" style={{ position: 'relative' }}>
               <Label htmlFor="profile" className="submit-profile-label">Profile</Label>
               <Input
                 id="profile"
                 type="text"
                 className="submit-profile-input"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
+                onFocus={handleInputFocus}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 100)}
                 placeholder="e.g., u/spez"
+                ref={inputRef}
               />
+              {showDropdown && filteredSuggestions.length > 0 && (
+                <div className="submit-profile-dropdown">
+                  {filteredSuggestions.map((sugg, idx) => (
+                    <div
+                      key={idx}
+                      className="submit-profile-suggestion"
+                      onMouseDown={() => handleSuggestionClick(sugg.name)}
+                    >
+                      {sugg.owned ? <b><i>{sugg.name}</i></b> : sugg.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-
-            {!token && platform === 'Reddit' && (
-              <Button type="button" onClick={handleRedditSignIn} className="submit-profile-button">
-                Sign in with Reddit
-              </Button>
-            )}
 
             <Button type="submit" disabled={!input} className="submit-profile-button">
               Submit Profile
             </Button>
+
+            {!token && (
+              <Button type="button" onClick={handleSignIn} className="submit-profile-button">
+                Sign in with {platform}
+              </Button>
+            )}
           </form>
 
           {error && <p className="submit-profile-error">{error}</p>}
-
-          {result && (
-            <div className="profile-results">
-              {renderSection('About', [result.about])}
-              {renderSection('Posts', result.posts)}
-              {renderSection('Comments', result.comments)}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+SubmitProfile.propTypes = {
+  onResult: PropTypes.func,
+};

@@ -1,13 +1,12 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const connectMongo = require('../../services/mongo');
+const { getDb, dbAccounts, dbPendingRequests } = require('../../services/mongo');
 const nodemailer = require('nodemailer');
 const useragent = require('useragent');
 const geoip = require('geoip-lite');
-
 const router = express.Router();
 
-router.post('/request-login', async (req, res) => {
+router.post('/', async (req, res) => {
   const { email, name, comment } = req.body;
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
@@ -16,9 +15,9 @@ router.post('/request-login', async (req, res) => {
   }
 
   try {
-    const db = await connectMongo();
-    const accountsCol = db.collection(process.env.MONGO_COLLECTION_ACCOUNTS);
-    const requestsCol = db.collection(process.env.MONGO_COLLECTION_PENDING_REQUESTS);
+    const db = getDb();
+    const accountsCol = db.collection(dbAccounts);
+    const requestsCol = db.collection(dbPendingRequests);
 
     const account = await accountsCol.findOne({ email: email.toLowerCase().trim() });
     if (!account) {
@@ -28,7 +27,7 @@ router.post('/request-login', async (req, res) => {
     const sessionID = uuidv4();
     const createdAt = new Date();
     const expiresAt = new Date(createdAt.getTime() + 72 * 60 * 60 * 1000);
-    
+
     const expiresAtTime = expiresAt.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
@@ -37,7 +36,6 @@ router.post('/request-login', async (req, res) => {
     
     const expiresAtDate = expiresAt.toLocaleDateString('en-GB');
     const expiresAtString = `${expiresAtTime} on ${expiresAtDate}`;
-    
 
     const agent = useragent.parse(req.headers['user-agent']);
     const geo = geoip.lookup(ip) || {};
@@ -52,7 +50,7 @@ router.post('/request-login', async (req, res) => {
       location: `${geo.city || 'Unknown'}, ${geo.country || 'Unknown'}`,
       status: 'Pending',
       createdAt,
-      expiresAt,
+      expiresAt
     };
 
     await requestsCol.insertOne(requestDoc);
@@ -92,7 +90,7 @@ router.post('/request-login', async (req, res) => {
 
     return res.status(200).json({ message: 'Login request sent. Awaiting approval.' });
   } catch (err) {
-    console.error('Login request error:', err);
+    console.error('❌ Login request error:', err);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 });

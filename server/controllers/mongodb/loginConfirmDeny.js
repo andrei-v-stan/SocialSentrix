@@ -1,6 +1,5 @@
 const express = require('express');
-const connectMongo = require('../../services/mongo');
-
+const { getDb, dbPendingRequests } = require('../../services/mongo');
 const router = express.Router();
 
 router.get('/confirm-login', async (req, res) => {
@@ -11,8 +10,8 @@ router.get('/confirm-login', async (req, res) => {
   }
 
   try {
-    const db = await connectMongo();
-    const requestsCol = db.collection(process.env.MONGO_COLLECTION_PENDING_REQUESTS);
+    const db = getDb();
+    const requestsCol = db.collection(dbPendingRequests);
 
     const request = await requestsCol.findOne({ sessionID });
 
@@ -47,7 +46,7 @@ router.get('/confirm-login', async (req, res) => {
       <h2>The original requester will be logged in shortly.</h2>
     `);
   } catch (err) {
-    console.error('Login confirmation error:', err);
+    console.error('❌ Login confirmation error:', err);
     return res.status(500).send('Internal server error.');
   }
 });
@@ -60,8 +59,8 @@ router.get('/deny-login', async (req, res) => {
   }
 
   try {
-    const db = await connectMongo();
-    const requestsCol = db.collection(process.env.MONGO_COLLECTION_PENDING_REQUESTS);
+    const db = getDb();
+    const requestsCol = db.collection(dbPendingRequests);
 
     const request = await requestsCol.findOne({ sessionID });
 
@@ -96,19 +95,21 @@ router.get('/deny-login', async (req, res) => {
       <h2>The requester will be notified and prevented from logging in.</h2>
     `);
   } catch (err) {
-    console.error('Login denial error:', err);
+    console.error('❌ Login denial error:', err);
     return res.status(500).send('Internal server error.');
   }
 });
 
-
 router.delete('/delete-login-request', async (req, res) => {
   const sessionID = req.cookies.sessionID;
-  if (!sessionID) return res.status(400).json({ error: 'Missing sessionID cookie.' });
+
+  if (!sessionID) {
+    return res.status(400).json({ error: 'Missing sessionID cookie.' });
+  }
 
   try {
-    const db = await connectMongo();
-    const col = db.collection(process.env.MONGO_COLLECTION_PENDING_REQUESTS);
+    const db = getDb();
+    const col = db.collection(dbPendingRequests);
     await col.deleteOne({ sessionID });
 
     res.clearCookie('sessionID', {
@@ -119,10 +120,9 @@ router.delete('/delete-login-request', async (req, res) => {
 
     return res.status(200).json({ message: 'Login request deleted and cookie cleared.' });
   } catch (err) {
-    console.error('Delete request error:', err);
+    console.error('❌ Delete request error:', err);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 });
-
 
 module.exports = router;

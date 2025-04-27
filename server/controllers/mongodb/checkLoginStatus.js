@@ -1,9 +1,8 @@
 const express = require('express');
-const connectMongo = require('../../services/mongo');
-
+const { getDb, dbAccounts, dbPendingRequests } = require('../../services/mongo');
 const router = express.Router();
 
-router.get('/check-login-status', async (req, res) => {
+router.get('/', async (req, res) => {
   const sessionID = req.cookies.sessionID;
 
   if (!sessionID) {
@@ -11,9 +10,9 @@ router.get('/check-login-status', async (req, res) => {
   }
 
   try {
-    const db = await connectMongo();
-    const requestsCol = db.collection(process.env.MONGO_COLLECTION_PENDING_REQUESTS);
-    const accountsCol = db.collection(process.env.MONGO_COLLECTION_ACCOUNTS);
+    const db = getDb();
+    const requestsCol = db.collection(dbPendingRequests);
+    const accountsCol = db.collection(dbAccounts);
 
     const request = await requestsCol.findOne({ sessionID });
 
@@ -43,21 +42,20 @@ router.get('/check-login-status', async (req, res) => {
         return res.status(404).json({ status: 'UserNotFound' });
       }
 
-
       res.cookie('userID', account.id, {
         httpOnly: false,
         sameSite: 'lax',
         maxAge: 31536000000
       });
 
-      await requestsCol.deleteOne({ sessionID });
+      //await requestsCol.deleteOne({ sessionID });
 
       return res.status(200).json({ status: 'Confirmed', uuid: account.id });
     }
 
     return res.status(500).json({ status: 'UnknownError' });
   } catch (err) {
-    console.error('Login status check failed:', err);
+    console.error('❌ Login status check failed:', err);
     return res.status(500).json({ status: 'Error' });
   }
 });

@@ -1,22 +1,32 @@
 const cron = require('node-cron');
-const connectMongo = require('./mongo');
+const { getDb, dbPendingConfirmations, dbPendingRequests } = require('./mongo');
 
 async function cleanupExpiredEntries() {
   try {
-    const db = await connectMongo();
+    const db = getDb();
     const now = new Date();
 
-    const loginResult = await db.collection(process.env.MONGO_COLLECTION_PENDING_REQUESTS).deleteMany({
+    const loginResult = await db.collection(dbPendingRequests).deleteMany({
+      status: { $ne: 'Confirmed' },
       expiresAt: { $lt: now }
-    });
+    });    
 
-    const pendingResult = await db.collection(process.env.MONGO_COLLECTION_PENDING_CONFIRMATIONS).deleteMany({
+    const pendingResult = await db.collection(dbPendingConfirmations).deleteMany({
       createdAt: { $lt: new Date(now.getTime() - 60 * 60 * 1000) }
     });
 
-    console.log(`🧹 Cleanup ran at ${now.toISOString()}`);
-    console.log(`🗑️  Deleted ${loginResult.deletedCount} expired login requests.`);
-    console.log(`🗑️  Deleted ${pendingResult.deletedCount} expired pending accounts.`);
+
+    const hours = now.getHours() % 12 || 12;
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+    const day = now.getDate().toString().padStart(2, '0');
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const year = now.getFullYear();
+
+    console.log(`🧹 Cleanup ran at ${hours}:${minutes} ${ampm} ${day}/${month}/${year}`);
+
+    console.log(`🗑️  Deleted ${loginResult.deletedCount} expired login requests`);
+    console.log(`🗑️  Deleted ${pendingResult.deletedCount} expired pending accounts`);
   } catch (error) {
     console.error('❌ Cleanup error:', error);
   }
@@ -50,10 +60,10 @@ async function removePending({ value, collectionPending }) {
     const collection = db.collection(collectionPending);
 
     let filter;
-    if (collectionPending === process.env.MONGO_COLLECTION_PENDING_REQUESTS) {
+    if (collectionPending === dbPendingRequests) {
       filter = { sessionID: value };
     } 
-    else if (collectionPending === process.env.MONGO_COLLECTION_PENDING_CONFIRMATIONS) {
+    else if (collectionPending === dbPendingConfirmations) {
       filter = { userID: value };
     } 
     else {
