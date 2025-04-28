@@ -5,14 +5,36 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities';
 import { FaRegWindowClose, FaExpandArrowsAlt } from 'react-icons/fa';
 import { FaWindowMinimize, FaWindowRestore, FaWindowMaximize } from 'react-icons/fa6';
+import { MdPersonAddAlt1, MdPersonOff } from 'react-icons/md';
 import SubWindow from './SubWindow';
 import ChartBlock from './ChartBlock';
 
-export default function SortableResultWindow({ id, title, content, onClose }) {
+export default function SortableResultWindow({ id, title, content, platform, username, onClose, globalCompareList, setGlobalCompareList, associationMap, resultsMap }) {
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
   const [hiddenGraphs, setHiddenGraphs] = useState([]);
-  const [graphOrder, setGraphOrder] = useState(['posts', 'comments', 'upvotes', 'downvotes']);
+  const [graphOrder, setGraphOrder] = useState(Object.keys(content || {}));
+
+  const isWindowInCompareMode = graphOrder.every(key => globalCompareList.includes(`${id}-${key}`));
+
+  const handleMainCompareToggle = () => {
+    const allGraphIds = graphOrder.map(key => `${id}-${key}`);
+    if (isWindowInCompareMode) {
+      setGlobalCompareList(prev => prev.filter(cmpId => !allGraphIds.includes(cmpId)));
+    } else {
+      setGlobalCompareList(prev => [...prev, ...allGraphIds]);
+    }
+  };
+
+  const toggleSubwindowCompare = (subwindowId) => {
+    setGlobalCompareList(prev => {
+      if (prev.includes(subwindowId)) {
+        return prev.filter(id => id !== subwindowId);
+      } else {
+        return [...prev, subwindowId];
+      }
+    });
+  };
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
@@ -39,6 +61,9 @@ export default function SortableResultWindow({ id, title, content, onClose }) {
       <div className="window-bar" {...attributes}>
         <span className="window-title" {...listeners}>{title}</span>
         <div className="window-controls">
+          <button onClick={handleMainCompareToggle}>
+            {isWindowInCompareMode ? <MdPersonOff /> : <MdPersonAddAlt1 />}
+          </button>
           <button onClick={() => setMinimized(prev => !prev)}>
             {minimized ? <FaWindowMaximize /> : <FaWindowMinimize />}
           </button>
@@ -55,23 +80,42 @@ export default function SortableResultWindow({ id, title, content, onClose }) {
         <div className="window-content">
           <DndContext collisionDetection={closestCenter} onDragEnd={handleGraphDragEnd}>
             <SortableContext items={graphOrder} strategy={verticalListSortingStrategy}>
-              {graphOrder.map((key) => {
-                if (hiddenGraphs.includes(key)) return null;
-                const rawData = content[key] || [];
-                if (rawData.length === 0) return null;
+              {graphOrder.map((category) => {
+                const subwindowId = `${id}-${category}`;
+                if (hiddenGraphs.includes(category)) return null;
 
-                let graphTitle = key.charAt(0).toUpperCase() + key.slice(1);
-                if (key === 'upvotes') graphTitle = 'Upvotes';
-                if (key === 'downvotes') graphTitle = 'Downvotes';
+                let graphData = [];
+                if (globalCompareList.includes(subwindowId)) {
+                  const associatedProfiles = associationMap[subwindowId] || {};
+                  Object.values(associatedProfiles).forEach(({ platform, username, category }) => {
+                    const foundWindow = Object.values(resultsMap).find(w => w.platform === platform && w.username === username);
+                    if (foundWindow?.content?.[category]) {
+                      graphData.push({
+                        label: `${platform}: ${username}`,
+                        data: foundWindow.content[category],
+                      });
+                    }
+                  });
+                } else {
+                  graphData.push({
+                    label: `${platform}: ${username}`,
+                    data: content[category] || [],
+                  });
+                }
+
+                if (graphData.every(g => g.data.length === 0)) return null;
+                let graphTitle = category.charAt(0).toUpperCase() + category.slice(1);
 
                 return (
                   <SubWindow
-                    key={key}
-                    id={key}
+                    key={subwindowId}
+                    id={subwindowId}
                     title={graphTitle}
-                    onClose={() => closeGraph(key)}
+                    onClose={() => closeGraph(category)}
+                    compareModeList={globalCompareList}
+                    toggleCompare={toggleSubwindowCompare}
                   >
-                    <ChartBlock rawData={rawData} category={key} />
+                    <ChartBlock datasets={graphData} category={category} />
                   </SubWindow>
                 );
               })}
@@ -90,8 +134,14 @@ export default function SortableResultWindow({ id, title, content, onClose }) {
 }
 
 SortableResultWindow.propTypes = {
-  id: PropTypes.any.isRequired,
+  id: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
   content: PropTypes.object.isRequired,
+  platform: PropTypes.string.isRequired,
+  username: PropTypes.string.isRequired,
   onClose: PropTypes.func.isRequired,
+  globalCompareList: PropTypes.array.isRequired,
+  setGlobalCompareList: PropTypes.func.isRequired,
+  associationMap: PropTypes.object.isRequired,
+  resultsMap: PropTypes.object.isRequired,
 };

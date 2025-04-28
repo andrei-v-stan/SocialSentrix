@@ -12,14 +12,17 @@ async function safeFetch(url, headers = {}) {
         ...headers
       }
     });
-    if (res.status === 401) return { error: true, unauthorized: true };
+    if (res.status === 401) return { error: true, unauthorized: true, status: 401 };
     if (!res.ok) throw new Error(`Bad response from ${url} (Status: ${res.status})`);
     return await res.json();
   } catch (err) {
     console.warn(`Error fetching ${url}:`, err.message);
-    return { error: true };
+    const match = err.message.match(/Status: (\d+)/);
+    const status = match ? parseInt(match[1], 10) : null;
+    return { error: true, status };
   }
 }
+
 
 async function fetchAllItems(baseUrl, headers = {}, limit = 10000) {
   let results = [];
@@ -67,8 +70,8 @@ async function scrapeRedditExtras(username, trophyNames = []) {
 
   await page.waitForFunction(() => {
     return document.querySelectorAll('ul[role="menu"]').length > 1;
-  }, { timeout: 5000 }).catch(() => {});
-  await page.waitForSelector('faceplate-partial[src*="moderated_subreddits"]', { timeout: 5000 }).catch(() => {});
+  }, { timeout: 5000 }).catch(() => { });
+  await page.waitForSelector('faceplate-partial[src*="moderated_subreddits"]', { timeout: 5000 }).catch(() => { });
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   const scrapedData = await page.evaluate((username, trophyNames) => {
@@ -79,8 +82,8 @@ async function scrapeRedditExtras(username, trophyNames = []) {
 
     const badges = faceplate
       ? Array.from(faceplate.querySelectorAll('faceplate-tooltip span'))
-          .map(span => span.textContent.trim())
-          .filter(text => text !== "")
+        .map(span => span.textContent.trim())
+        .filter(text => text !== "")
       : [];
 
     const profileName = faceplate?.querySelector('h2')?.innerText.trim() || null;
@@ -105,16 +108,28 @@ async function scrapeRedditExtras(username, trophyNames = []) {
   return scrapedData;
 }
 
-function isMeaningful(obj) {
-  if (!obj || typeof obj !== 'object') return false;
-  for (const key in obj) {
-    const value = obj[key];
-    if (value === null || value === undefined) continue;
-    if (Array.isArray(value) && value.length > 0) return true;
-    if (typeof value === 'object' && Object.keys(value).length > 0) return true;
-    if (typeof value !== 'object') return true;
+function buildMeaningfulUpdate(basePath, data, updateDoc) {
+  if (data == null) return;
+
+  if (Array.isArray(data)) {
+    if (data.length > 0) {
+      updateDoc.$set[basePath] = data;
+    }
+    return;
   }
-  return false;
+
+  if (typeof data === 'object') {
+    const keys = Object.keys(data);
+    if (keys.length === 0) return;
+
+    for (const key of keys) {
+      const value = data[key];
+      buildMeaningfulUpdate(`${basePath}.${key}`, value, updateDoc);
+    }
+    return;
+  }
+
+  updateDoc.$set[basePath] = data;
 }
 
 exports.getRedditProfile = async (req, res) => {
@@ -203,8 +218,18 @@ exports.getRedditProfile = async (req, res) => {
       createdAt: comment.data.created_utc ? new Date(comment.data.created_utc * 1000) : null
     })) || [];
 
-  const isCompletelyInvalid = about?.error && submittedRaw.length === 0 && commentsRaw.length === 0;
-  if (isCompletelyInvalid) return res.status(404).json({ error: 'User not found or no public activity.' });
+  const existingProfile = await profilesCol.findOne({ platform, username });
+  const noDataFetched = (about?.error || !about?.data) && submittedRaw.length === 0 && commentsRaw.length === 0;
+  if (noDataFetched && !existingProfile) {
+    if (userID) {
+      await accountsCol.updateOne(
+        { id: userID },
+        { $pull: { associatedProfiles: { platform, user: username } } }
+      );
+    }
+    return res.status(404).json({ error: 'User not found or no public activity.' });
+  }
+
 
   const cakeDay = about?.data?.created_utc ? new Date(about.data.created_utc * 1000) : null;
   const trophyNames = trophies?.data?.trophies?.map(t => t.data.name) || [];
@@ -243,17 +268,15 @@ exports.getRedditProfile = async (req, res) => {
     hidden: parsePosts(hiddenRaw)
   } : undefined;
 
-  const guestViewMeaningful = isMeaningful(guestView);
-  const ownerViewMeaningful = ownerMode && isMeaningful(ownerView);
+  const updateDoc = { $set: { platform, username } };
 
-  const updateDoc = {
-    $set: {
-      platform,
-      username,
-      ...(guestViewMeaningful ? { guestView } : {}),
-      ...(ownerViewMeaningful ? { ownerView } : {})
-    }
-  };
+  if (guestView) {
+    buildMeaningfulUpdate('guestView', guestView, updateDoc);
+  }
+  if (ownerMode && ownerView) {
+    buildMeaningfulUpdate('ownerView', ownerView, updateDoc);
+  }
+
 
   await profilesCol.updateOne(
     { platform, username },

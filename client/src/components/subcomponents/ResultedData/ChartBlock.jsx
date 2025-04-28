@@ -1,266 +1,403 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import DatePicker from 'react-datepicker';
 import PropTypes from 'prop-types';
 import 'react-datepicker/dist/react-datepicker.css';
 
+const groupBy = (data, interval, selectedYAxis, category) => {
+  const grouped = new Map();
 
-const groupBy = (data, interval) => {
-    const grouped = new Map();
-    data.forEach(item => {
-      const date = new Date(item.timestamp);
-      let key;
-      switch (interval) {
-        case 'minute': key = format(date, 'yyyy-MM-dd HH:mm'); break;
-        case 'hour': key = format(date, 'yyyy-MM-dd HH'); break;
-        case 'day': key = format(date, 'yyyy-MM-dd'); break;
-        case 'week': key = format(date, 'yyyy-ww'); break;
-        case 'month': key = format(date, 'yyyy-MM'); break;
-        case 'year': key = format(date, 'yyyy'); break;
-        default: key = format(date, 'yyyy-MM-dd HH:mm');
+  data.forEach(item => {
+    const date = new Date(item.createdAt || item.timestamp);
+    let key;
+    switch (interval) {
+      case 'minute': key = format(date, 'yyyy-MM-dd HH:mm'); break;
+      case 'hour': key = format(date, 'yyyy-MM-dd HH'); break;
+      case 'day': key = format(date, 'yyyy-MM-dd'); break;
+      case 'week': key = format(date, 'yyyy-ww'); break;
+      case 'month': key = format(date, 'yyyy-MM'); break;
+      case 'year': key = format(date, 'yyyy'); break;
+      default: key = format(date, 'yyyy-MM-dd HH:mm');
+    }
+
+    if (!grouped.has(key)) grouped.set(key, { posts: [], sum: 0 });
+
+    const group = grouped.get(key);
+
+    if (category === 'posts') {
+      if (selectedYAxis === 'posts') {
+        group.sum += 1;
+      } else if (selectedYAxis === 'comments') {
+        group.sum += item.comments || 0;
+      } else if (selectedYAxis === 'upvotes') {
+        group.sum += item.upvotes || 0;
       }
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key).push(item);
-    });
-  
-    return Array.from(grouped.entries())
-      .map(([timestamp, items]) => ({
-        timestamp,
-        value: items.length,
-        items
-      }))
-      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  };
-  
+      group.posts.push(item);
+    } else if (category === 'comments') {
+      if (selectedYAxis === 'comments') {
+        group.sum += 1;
+      } else if (selectedYAxis === 'upvotes') {
+        group.sum += item.upvotes || 0;
+      }
+      group.posts.push(item);
+    } else if (category === 'upvotes' || category === 'downvotes') {
+      group.sum += 1;
+      group.posts.push(item);
+    }
+  });
 
-  export default function ChartBlock({ rawData }) {
-    const [granularity, setGranularity] = useState('month');
-    const [pointSpacing, setPointSpacing] = useState(60);
-    const [dateRange, setDateRange] = useState([null, null]);
-    const [minDate, setMinDate] = useState(null);
-    const [maxDate, setMaxDate] = useState(null);
-    const [selectedPoint, setSelectedPoint] = useState(null);
-  
-    const scrollRef = useRef(null);
-  
-    useEffect(() => {
-      if (rawData.length > 0 && (!minDate || !maxDate)) {
-        const timestamps = rawData.map(r => parseISO(r.createdAt)).sort((a, b) => a - b);
+  return Array.from(grouped.entries())
+    .map(([timestamp, { posts, sum }]) => ({
+      timestamp,
+      value: sum,
+      items: posts,
+    }))
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+};
+
+
+
+export default function ChartBlock({ datasets, category }) {
+  const [granularity, setGranularity] = useState('month');
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [minDate, setMinDate] = useState(null);
+  const [maxDate, setMaxDate] = useState(null);
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const [selectedYAxis, setSelectedYAxis] = useState(() => {
+    if (category === 'posts') return 'posts';
+    if (category === 'comments') return 'comments';
+    return 'count';
+  });
+  const scrollRef = useRef(null);
+
+  const availableYAxisOptions = (() => {
+    if (category === 'posts') return ['posts', 'comments', 'upvotes'];
+    if (category === 'comments') return ['comments', 'upvotes'];
+    return [];
+  })();
+
+  useEffect(() => {
+    if (datasets.length > 0) {
+      const timestamps = datasets.flatMap(({ data }) => data.map(d => parseISO(d.createdAt || d.timestamp)));
+      if (timestamps.length > 0) {
+        timestamps.sort((a, b) => a - b);
         setMinDate(timestamps[0]);
         setMaxDate(timestamps[timestamps.length - 1]);
         setDateRange([timestamps[0], timestamps[timestamps.length - 1]]);
       }
-    }, [rawData, minDate, maxDate]);
-  
-    const filteredData = (() => {
-      if (!rawData.length) return [];
-      const items = rawData.map((item, i) => ({
-        index: i,
-        timestamp: format(new Date(item.createdAt), "yyyy-MM-dd'T'HH:mm:ss.SSS"),
-        value: item.upvotes || item.comments || 1,
-        label: item.title || item.text || 'Untitled',
-        raw: item
-      }));
-  
-      const [start, end] = dateRange;
-      const filtered = items.filter(r => {
-        const date = parseISO(r.timestamp);
-        if (!start || !end) return true;
+    }
+  }, [datasets]);
+
+  const filteredDatasets = datasets.map(({ label, data }) => {
+    let filtered = data.map(item => ({
+      ...item,
+      timestamp: format(new Date(item.createdAt || item.timestamp), "yyyy-MM-dd'T'HH:mm:ss.SSS"),
+    }));
+
+    const [start, end] = dateRange;
+    if (start && end) {
+      filtered = filtered.filter(item => {
+        const date = parseISO(item.timestamp);
         return date >= start && date <= end;
       });
-  
-      return groupBy(filtered, granularity, 'count');
-    })();
-  
-    const formatXAxis = (tick) => {
-      try {
-        const date = parseISO(tick);
-        switch (granularity) {
-          case 'minute':
-          case 'hour':
-            return format(date, 'HH:mm:ss | dd/MM/yyyy');
-          case 'day':
-            return format(date, 'dd/MM/yyyy');
-          case 'week':
-            return `Week ${format(date, 'II')} | ${format(date, 'yyyy')}`;
-          case 'month':
-            return format(date, 'MM/yyyy');
-          case 'year':
-            return format(date, 'yyyy');
-          default:
-            return format(date, 'dd/MM/yyyy');
-        }
-      } catch {
-        return tick;
-      }
+    }
+
+    return {
+      label,
+      data: groupBy(filtered, granularity, selectedYAxis, category),
     };
-  
-    return (
-      <div className="chart-block">
-        <div className="chart-controls">
-          <span>Granularity:</span>
-          {['minute', 'hour', 'day', 'week', 'month', 'year'].map(g => (
-            <button
-              key={g}
-              onClick={() => setGranularity(g)}
-              className={granularity === g ? 'active' : ''}
-            >
-              {g}
-            </button>
-          ))}
-  
-          <div className="zoom-controls">
-            <strong>Zoom:</strong>
-            <button onClick={() => setPointSpacing(prev => Math.max(5, prev - 10))}>-</button>
-            <input
-              type="number"
-              value={pointSpacing}
-              min={5}
-              step={10}
-              onChange={(e) => setPointSpacing(Math.max(5, parseInt(e.target.value) || 5))}
-            />
-            <button onClick={() => setPointSpacing(prev => prev + 10)}>+</button>
-          </div>
-  
-          <div className="date-pickers">
-            <div className="single-picker">
-              <label>Start</label>
-              <DatePicker
-                selected={dateRange[0]}
-                onChange={(date) => {
-                  const endDate = dateRange[1];
-                  if (!date) {
-                    setDateRange([minDate, endDate]);
-                  } else if (endDate && date > endDate) {
-                    setDateRange([endDate, date]);
-                  } else {
-                    setDateRange([date, endDate]);
-                  }
-                }}
-                selectsStart
-                startDate={dateRange[0]}
-                endDate={dateRange[1]}
-                minDate={minDate}
-                maxDate={maxDate}
-                showTimeSelect={granularity === 'minute' || granularity === 'hour'}
-                dateFormat={granularity === 'minute' ? 'dd/MM/yyyy HH:mm' :
-                            granularity === 'hour' ? 'dd/MM/yyyy HH' :
-                            granularity === 'day' ? 'dd/MM/yyyy' :
-                            granularity === 'week' || granularity === 'month' ? 'MM/yyyy' :
-                            'yyyy'}
-                placeholderText="Select start date"
-                isClearable
-              />
-            </div>
-  
-            <div className="single-picker">
-              <label>End</label>
-              <DatePicker
-                selected={dateRange[1]}
-                onChange={(date) => {
-                  const startDate = dateRange[0];
-                  if (!date) {
-                    setDateRange([startDate, maxDate]);
-                  } else if (startDate && date < startDate) {
-                    setDateRange([date, startDate]);
-                  } else {
-                    setDateRange([startDate, date]);
-                  }
-                }}
-                selectsEnd
-                startDate={dateRange[0]}
-                endDate={dateRange[1]}
-                minDate={minDate}
-                maxDate={maxDate}
-                showTimeSelect={granularity === 'minute' || granularity === 'hour'}
-                dateFormat={granularity === 'minute' ? 'dd/MM/yyyy HH:mm' :
-                            granularity === 'hour' ? 'dd/MM/yyyy HH' :
-                            granularity === 'day' ? 'dd/MM/yyyy' :
-                            granularity === 'week' || granularity === 'month' ? 'MM/yyyy' :
-                            'yyyy'}
-                placeholderText="Select end date"
-                isClearable
-              />
-            </div>
-          </div>
-        </div>
-  
-        <div
-          ref={scrollRef}
-          style={{ overflowX: 'auto', overflowY: 'hidden', marginTop: '10px' }}
-        >
-          <div style={{ minWidth: `${Math.max(filteredData.length * pointSpacing, 800)}px`, height: '250px', position: 'relative' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={filteredData}
-                onClick={(e) => {
-                  if (e && e.activePayload) {
-                    setSelectedPoint({
-                      timestamp: e.activeLabel,
-                      items: e.activePayload[0]?.payload.items || []
-                    });
-                  }
-                }}
+  });
+
+  const mergeDatasetsByTimestamp = (datasets) => {
+    const merged = {};
+
+    datasets.forEach(({ label, data }) => {
+      data.forEach(({ timestamp, value, items = [] }) => {
+        if (!merged[timestamp]) {
+          merged[timestamp] = { timestamp, __items: {} };
+        }
+        merged[timestamp][label] = value;
+        merged[timestamp].__items[label] = items;
+      });
+    });
+
+    return Object.values(merged).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  };
+
+
+  const mergedData = mergeDatasetsByTimestamp(filteredDatasets);
+
+  const formatXAxis = (tick) => {
+    try {
+      const date = parseISO(tick);
+      switch (granularity) {
+        case 'minute':
+        case 'hour':
+          return format(date, 'HH:mm:ss | dd/MM/yyyy');
+        case 'day':
+          return format(date, 'dd/MM/yyyy');
+        case 'week':
+          return `Week ${format(date, 'II')} | ${format(date, 'yyyy')}`;
+        case 'month':
+          return format(date, 'MM/yyyy');
+        case 'year':
+          return format(date, 'yyyy');
+        default:
+          return format(date, 'dd/MM/yyyy');
+      }
+    } catch {
+      return tick;
+    }
+  };
+
+  const colorForIndex = (idx) => `hsl(${(idx * 60) % 360}, 70%, 50%)`;
+
+  return (
+    <div className="chart-block">
+      <div className="chart-controls">
+        <span>Granularity:</span>
+        {['minute', 'hour', 'day', 'week', 'month', 'year'].map(g => (
+          <button
+            key={g}
+            onClick={() => setGranularity(g)}
+            className={granularity === g ? 'active' : ''}
+          >
+            {g}
+          </button>
+        ))}
+
+        {availableYAxisOptions.length > 0 && (
+          <div className="y-axis-controls">
+            <span>Y-Axis:</span>
+            {availableYAxisOptions.map(option => (
+              <button
+                key={option}
+                onClick={() => setSelectedYAxis(option)}
+                className={selectedYAxis === option ? 'active' : ''}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="timestamp" tickFormatter={formatXAxis} tick={{ fontSize: 10 }} />
-                <YAxis />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1e1e1e',
-                    border: '1px solid #444',
-                    borderRadius: '8px',
-                    color: '#eee',
-                    fontSize: '0.85rem',
-                    boxShadow: '0 0 8px rgba(0, 0, 0, 0.6)'
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#8884d8"
-                  dot
-                  isAnimationActive={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-  
-            {filteredData.length === 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                color: '#aaa',
-                fontSize: '1rem',
-                textAlign: 'center',
-                pointerEvents: 'none'
-              }}>
-                No data for selected time range
-              </div>
-            )}
-          </div>
-        </div>
-  
-        {selectedPoint && (
-          <div className="point-details dark-mode">
-            <h5>Data for {selectedPoint.timestamp}</h5>
-            {selectedPoint.items.map((item, idx) => (
-              <div key={idx} className="point-entry">
-                <strong>{item.label}</strong>
-                <pre>{JSON.stringify(item.raw, null, 2)}</pre>
-              </div>
+                {option}
+              </button>
             ))}
-            <button onClick={() => setSelectedPoint(null)}>Close</button>
           </div>
         )}
+
+        <div className="date-pickers">
+          <div className="single-picker">
+            <label>Start</label>
+            <DatePicker
+              selected={dateRange[0]}
+              onChange={(date) => setDateRange([date, dateRange[1]])}
+              selectsStart
+              startDate={dateRange[0]}
+              endDate={dateRange[1]}
+              minDate={minDate}
+              maxDate={maxDate}
+              showTimeSelect={granularity === 'minute' || granularity === 'hour'}
+              dateFormat={granularity === 'minute' ? 'dd/MM/yyyy HH:mm' :
+                granularity === 'hour' ? 'dd/MM/yyyy HH' :
+                  granularity === 'day' ? 'dd/MM/yyyy' :
+                    granularity === 'week' || granularity === 'month' ? 'MM/yyyy' :
+                      'yyyy'}
+              placeholderText="Select start date"
+              isClearable
+            />
+          </div>
+
+          <div className="single-picker">
+            <label>End</label>
+            <DatePicker
+              selected={dateRange[1]}
+              onChange={(date) => setDateRange([dateRange[0], date])}
+              selectsEnd
+              startDate={dateRange[0]}
+              endDate={dateRange[1]}
+              minDate={minDate}
+              maxDate={maxDate}
+              showTimeSelect={granularity === 'minute' || granularity === 'hour'}
+              dateFormat={granularity === 'minute' ? 'dd/MM/yyyy HH:mm' :
+                granularity === 'hour' ? 'dd/MM/yyyy HH' :
+                  granularity === 'day' ? 'dd/MM/yyyy' :
+                    granularity === 'week' || granularity === 'month' ? 'MM/yyyy' :
+                      'yyyy'}
+              placeholderText="Select end date"
+              isClearable
+            />
+          </div>
+        </div>
       </div>
-    );
-  }
-  
-  ChartBlock.propTypes = {
-    rawData: PropTypes.array.isRequired,
-    category: PropTypes.string.isRequired,
-  };
+
+      <div
+        ref={scrollRef}
+        style={{ overflowX: 'auto', overflowY: 'hidden', marginTop: '10px' }}
+      >
+        <div style={{ minWidth: '800px', height: '250px', position: 'relative' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={mergedData}
+              onClick={(e) => {
+                if (e && e.activePayload) {
+                  const timestamp = e.activeLabel;
+                  const payload = e.activePayload[0]?.payload;
+
+                  const groupedItems = {};
+
+                  if (payload && payload.__items) {
+                    for (const [label, items] of Object.entries(payload.__items)) {
+                      if (items && items.length > 0) {
+                        groupedItems[label] = items.map(item => ({
+                          label: item.title || item.text || 'Untitled',
+                          raw: item,
+                        }));
+                      }
+                    }
+                  }
+
+                  setSelectedPoint({
+                    timestamp,
+                    groupedItems,
+                  });
+                }
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="timestamp" tickFormatter={formatXAxis} tick={{ fontSize: 10 }} />
+              <YAxis />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#1e1e1e',
+                  border: '1px solid #444',
+                  borderRadius: '8px',
+                  color: '#eee',
+                  fontSize: '0.85rem',
+                  boxShadow: '0 0 8px rgba(0, 0, 0, 0.6)'
+                }}
+              />
+              <Legend />
+              {filteredDatasets.map(({ label }, idx) => (
+                <Line
+                  key={idx}
+                  type="monotone"
+                  dataKey={label}
+                  name={label}
+                  stroke={colorForIndex(idx)}
+                  dot
+                  isAnimationActive={false}
+                  connectNulls={true}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+
+          {filteredDatasets.every(d => d.data.length === 0) && (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              color: '#aaa',
+              fontSize: '1rem',
+              textAlign: 'center',
+              pointerEvents: 'none'
+            }}>
+              No data for selected time range
+            </div>
+          )}
+        </div>
+      </div>
+
+      {selectedPoint && (
+        <div className="point-details dark-mode" style={{ marginTop: '1rem' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1rem'
+          }}>
+            <h5 style={{ margin: 0 }}>Data for {selectedPoint.timestamp}</h5>
+            <button
+              onClick={() => setSelectedPoint(null)}
+              style={{
+                backgroundColor: '#4dabf7',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '0.4rem 0.8rem',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Close
+            </button>
+          </div>
+
+          {Object.entries(selectedPoint.groupedItems).map(([label, items]) => (
+            <div key={label} className="user-section" style={{
+              marginBottom: '2rem',
+              padding: '1rem',
+              backgroundColor: '#2a2a2a',
+              borderRadius: '10px'
+            }}>
+              <h6 style={{
+                marginBottom: '1rem',
+                fontSize: '1.1rem',
+                color: '#4dabf7'
+              }}>{label}</h6>
+
+              {items.map((item, idx) => {
+                const post = item.raw || item;
+                return (
+                  <div key={idx} className="point-entry" style={{ marginBottom: '1.5rem' }}>
+                    <strong style={{ fontSize: '1rem' }}>
+                      {post.title || post.text || 'Untitled'}
+                    </strong>
+
+                    <pre style={{
+                      backgroundColor: '#1e1e1e',
+                      padding: '0.8rem',
+                      borderRadius: '8px',
+                      marginTop: '0.4rem',
+                      fontSize: '0.85rem',
+                      lineHeight: '1.5',
+                      color: '#eee',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}>
+                      {`Upvotes: ${post.upvotes ?? 0}
+                        Comments: ${post.comments ?? 0}
+                        Subreddit: ${post.subreddit || 'Unknown'}
+                        Created At: ${post.createdAt ? new Date(post.createdAt).toLocaleString() : 'N/A'}`}
+                    </pre>
+
+                    {post.permalink && (
+                      <div style={{ marginTop: '0.6rem' }}>
+                        <a
+                          href={`https://reddit.com${post.permalink}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: '#4dabf7',
+                            textDecoration: 'underline',
+                            wordBreak: 'break-all',
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          {`https://reddit.com${post.permalink}`}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ChartBlock.propTypes = {
+  datasets: PropTypes.array.isRequired,
+  category: PropTypes.string.isRequired,
+};
