@@ -153,8 +153,16 @@ export default function ChartBlock({ datasets, category }) {
 
   const colorForIndex = (idx) => `hsl(${(idx * 60) % 360}, 70%, 50%)`;
 
+  const chartExportData = {
+    labels: filteredDatasets.map(d => d.label),
+    data: mergedData
+  };
+
+  const chartRef = useRef();
+
   return (
-    <div className="chart-block">
+    <div className="chart-block" data-chart={JSON.stringify(chartExportData)}>
+
       <div className="chart-controls">
         <span>Granularity:</span>
         {['minute', 'hour', 'day', 'week', 'month', 'year'].map(g => (
@@ -232,6 +240,11 @@ export default function ChartBlock({ datasets, category }) {
         style={{ overflowX: 'auto', overflowY: 'hidden', marginTop: '10px' }}
       >
         <div style={{ minWidth: '800px', height: '250px', position: 'relative' }}>
+          <div
+            ref={chartRef}
+            className="chart-capture-target"
+            style={{ width: '100%', height: '100%' }}
+          >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={mergedData}
@@ -288,7 +301,7 @@ export default function ChartBlock({ datasets, category }) {
               ))}
             </LineChart>
           </ResponsiveContainer>
-
+          </div>
           {filteredDatasets.every(d => d.data.length === 0) && (
             <div style={{
               position: 'absolute',

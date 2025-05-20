@@ -66,7 +66,7 @@ export default function Header() {
           console.error('Error fetching email:', err);
         });
     } else {
-      setIsLoggedIn(hasUserID);
+      setIsLoggedIn(false);
       if (!hasUserID && hasSessionID) {
         setLoginRequestSent(true);
       }

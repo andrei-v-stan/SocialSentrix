@@ -13,7 +13,12 @@ export default function SortableResultWindow({ id, title, content, platform, use
   const [minimized, setMinimized] = useState(false);
   const [maximized, setMaximized] = useState(false);
   const [hiddenGraphs, setHiddenGraphs] = useState([]);
-  const [graphOrder, setGraphOrder] = useState(Object.keys(content || {}));
+  const [graphOrder, setGraphOrder] = useState(() => {
+    const keys = Object.keys(content || {});
+    if (!keys.includes('setic')) keys.push('setic');
+    return keys;
+  });
+  const [seticResult, setSeticResult] = useState(null);
 
   const isWindowInCompareMode = graphOrder.every(key => globalCompareList.includes(`${id}-${key}`));
 
@@ -56,6 +61,42 @@ export default function SortableResultWindow({ id, title, content, platform, use
   const closeGraph = (key) => setHiddenGraphs(prev => [...prev, key]);
   const restoreAllGraphs = () => setHiddenGraphs([]);
 
+  const handleCalculateSETIC = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reddit/calculate-setic?username=${username}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.error) {
+        console.error('SETIC calculation failed:', data.error);
+        return;
+      }
+      setSeticResult(data);
+    } catch (error) {
+      console.error('SETIC fetch error:', error);
+    }
+  };
+
+  const renderSETICBar = (label, value) => (
+    <div style={{ marginBottom: '1rem' }}>
+      <div style={{ fontSize: '1rem', marginBottom: '0.3rem' }}>{label}: {value}%</div>
+      <div style={{
+        background: '#333',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        height: '10px',
+        width: '100%'
+      }}>
+        <div style={{
+          height: '100%',
+          width: `${value}%`,
+          backgroundColor: '#4dabf7',
+          transition: 'width 0.5s ease'
+        }} />
+      </div>
+    </div>
+  );
+
   return (
     <div ref={setNodeRef} style={style} className={`result-window ${minimized ? 'minimized' : ''} ${maximized ? 'maximized' : ''}`}>
       <div className="window-bar" {...attributes}>
@@ -84,6 +125,51 @@ export default function SortableResultWindow({ id, title, content, platform, use
                 const subwindowId = `${id}-${category}`;
                 if (hiddenGraphs.includes(category)) return null;
 
+                let graphTitle = category.charAt(0).toUpperCase() + category.slice(1);
+
+                if (category === 'setic') {
+                  graphTitle = 'SETIC Calculator';
+                  return (
+                    <SubWindow
+                      key={subwindowId}
+                      id={subwindowId}
+                      title={graphTitle}
+                      onClose={() => closeGraph(category)}
+                      compareModeList={globalCompareList}
+                      toggleCompare={toggleSubwindowCompare}
+                    >
+                      {!seticResult ? (
+                        <div style={{ padding: '1rem', textAlign: 'center' }}>
+                          <button
+                            onClick={handleCalculateSETIC}
+                            style={{
+                              padding: '0.8rem 1.2rem',
+                              fontSize: '1rem',
+                              backgroundColor: '#4dabf7',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontWeight: 'bold'
+                            }}
+                          >
+                            Calculate SETIC
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ padding: '1rem' }}>
+                          <h4 style={{ marginBottom: '1rem', color: '#4dabf7' }}>SETIC Scores</h4>
+                          {renderSETICBar('Sentiment', seticResult.S)}
+                          {renderSETICBar('Engagement', seticResult.E)}
+                          {renderSETICBar('Trustworthiness', seticResult.T)}
+                          {renderSETICBar('Influence', seticResult.I)}
+                          {renderSETICBar('Consistency', seticResult.C)}
+                        </div>
+                      )}
+                    </SubWindow>
+                  );
+                }
+
                 let graphData = [];
                 if (globalCompareList.includes(subwindowId)) {
                   const associatedProfiles = associationMap[subwindowId] || {};
@@ -104,7 +190,6 @@ export default function SortableResultWindow({ id, title, content, platform, use
                 }
 
                 if (graphData.every(g => g.data.length === 0)) return null;
-                let graphTitle = category.charAt(0).toUpperCase() + category.slice(1);
 
                 return (
                   <SubWindow

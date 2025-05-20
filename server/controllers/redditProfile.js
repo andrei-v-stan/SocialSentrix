@@ -111,6 +111,11 @@ async function scrapeRedditExtras(username, trophyNames = []) {
 function buildMeaningfulUpdate(basePath, data, updateDoc) {
   if (data == null) return;
 
+  if (data instanceof Date) {
+    updateDoc.$set[basePath] = data.toISOString();
+    return;
+  }
+
   if (Array.isArray(data)) {
     if (data.length > 0) {
       updateDoc.$set[basePath] = data;

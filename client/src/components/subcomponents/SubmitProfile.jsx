@@ -25,6 +25,9 @@ export default function SubmitProfile({ onResult }) {
   const [suggestions, setSuggestions] = useState([]);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [blueskyUsername, setBlueskyUsername] = useState('');
+  const [blueskyPassword, setBlueskyPassword] = useState('');
+
 
   const inputRef = useRef();
 
@@ -117,6 +120,32 @@ export default function SubmitProfile({ onResult }) {
     window.location.href = loginURL;
   };
 
+  const handleBlueskyLogin = async () => {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bluesky/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        username: blueskyUsername,
+        password: blueskyPassword,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.token) {
+      setToken(data.token); // now ready to fetch profile
+      alert(`Logged in as ${data.handle}`);
+    } else {
+      setError(data.error || 'Login failed.');
+    }
+  } catch (err) {
+    console.error(err);
+    setError('Could not login to Bluesky.');
+  }
+};
+
+
   const handleInputFocus = async () => {
     const userID = Cookies.get('userID');
     if (!userID) return;
@@ -195,7 +224,7 @@ export default function SubmitProfile({ onResult }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Reddit">Reddit</SelectItem>
-                  <SelectItem value="Bluesky" disabled>Bluesky (coming soon)</SelectItem>
+                  <SelectItem value="Bluesky">Bluesky</SelectItem>
                   <SelectItem value="X" disabled>X (coming soon)</SelectItem>
                   <SelectItem value="Facebook" disabled>Facebook (coming soon)</SelectItem>
                   <SelectItem value="Instagram" disabled>Instagram (coming soon)</SelectItem>
@@ -230,6 +259,39 @@ export default function SubmitProfile({ onResult }) {
                 </div>
               )}
             </div>
+
+            {platform === 'Bluesky' && !token && (
+  <>
+    <div className="submit-profile-field">
+      <Label htmlFor="bluesky-username" className="submit-profile-label">Bluesky Username</Label>
+      <Input
+        id="bluesky-username"
+        type="text"
+        className="submit-profile-input"
+        value={blueskyUsername}
+        onChange={(e) => setBlueskyUsername(e.target.value)}
+        placeholder="e.g., your.bsky.social"
+      />
+    </div>
+
+    <div className="submit-profile-field">
+      <Label htmlFor="bluesky-password" className="submit-profile-label">Password</Label>
+      <Input
+        id="bluesky-password"
+        type="password"
+        className="submit-profile-input"
+        value={blueskyPassword}
+        onChange={(e) => setBlueskyPassword(e.target.value)}
+        placeholder="••••••••"
+      />
+    </div>
+
+    <Button type="button" onClick={handleBlueskyLogin} className="submit-profile-button">
+      Login to Bluesky
+    </Button>
+  </>
+)}
+
 
             <Button type="submit" disabled={!input} className="submit-profile-button">
               Submit Profile
