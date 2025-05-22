@@ -1,5 +1,5 @@
 const { BskyAgent } = require('@atproto/api');
-const { getDb, dbAccounts, dbProfiles } = require('../services/mongo');
+const { getDb, dbAccounts, dbProfiles } = require('../../services/mongo');
 
 const agent = new BskyAgent({ service: 'https://bsky.social' });
 

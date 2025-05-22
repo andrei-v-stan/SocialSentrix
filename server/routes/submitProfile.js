@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const redditProfile = require('../controllers/redditProfile.js');
-const blueskyProfile = require('../controllers/blueskyProfile.js');
+const redditProfile = require('../controllers/reddit/redditProfile.js');
+const blueskyProfile = require('../controllers/bluesky/blueskyProfile.js');
 
 function extractUsername(platform, input) {
   switch (platform.toLowerCase()) {

@@ -1,4 +1,4 @@
-const { getDb, dbProfiles } = require('../services/mongo');
+const { getDb, dbProfiles } = require('../../services/mongo');
 const vader = require('vader-sentiment');
 
 async function calculateSETIC(username) {

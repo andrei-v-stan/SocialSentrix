@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Header, Footer, Home, About, Redir, Test } from './components/components.js';
+import { Header, Footer, Home, About, Redir, Test, ManageSessions, ParseResponse } from './components/components.js';
 import './App.css'
 
 function App() {
@@ -9,9 +9,11 @@ function App() {
         {<Header />}
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
             <Route path="/test" element={<Test />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/parse" element={<ParseResponse />} />
+            <Route path="/managesessions" element={<ManageSessions />} />
             <Route path="*" element={<Redir />} />
           </Routes>
         </main>

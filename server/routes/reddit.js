@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const redditProfile = require('../controllers/redditProfile.js');
-const redditAuth = require('../controllers/redditAuth.js');
-const redditSETIC = require('../controllers/redditSETIC.js');
+const redditProfile = require('../controllers/reddit/redditProfile.js');
+const redditAuth = require('../controllers/reddit/redditAuth.js');
+const redditSETIC = require('../controllers/reddit/redditSETIC.js');
 
 router.post('/profile', redditProfile.getRedditProfile);
 router.get('/auth', redditAuth.startRedditAuth);

@@ -1,7 +1,7 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const querystring = require('querystring');
 const { ObjectId } = require('mongodb');
-const { getDb, dbAccounts } = require('../services/mongo');
+const { getDb, dbAccounts } = require('../../services/mongo');
 
 const CLIENT_ID = process.env.REDDIT_CLIENT_ID;
 const CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET;

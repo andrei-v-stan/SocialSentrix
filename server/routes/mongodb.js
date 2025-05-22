@@ -1,15 +1,13 @@
 const express = require('express');
 const router = express.Router();
 
-router.use('/register-account', require('../controllers/mongodb/registerAccount'));
-router.use('/confirm-account', require('../controllers/mongodb/confirmAccount'));
+router.use('/', require('../controllers/mongodb/accountRegisterConfirm'));
 
-router.use('/request-login', require('../controllers/mongodb/requestLogin'));
-router.use('/', require('../controllers/mongodb/loginConfirmDeny'));
-router.use('/check-login-status', require('../controllers/mongodb/checkLoginStatus'));
+router.use('/', require('../controllers/mongodb/loginStatus'));
 
-router.use('/get-account-email', require('../controllers/mongodb/getAccountEmail'));
-router.use('/get-user-profiles', require('../controllers/mongodb/getUserProfiles'));
+router.use('/', require('../controllers/mongodb/getUserData'));
+
+router.use('/', require('../controllers/mongodb/manageSessions'));
 
 router.use('/clear-collections', require('../controllers/mongodb/clearCollections'));
 

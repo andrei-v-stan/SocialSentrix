@@ -1,5 +1,5 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const { getDb, dbAccounts, dbProfiles } = require('../services/mongo');
+const { getDb, dbAccounts, dbProfiles } = require('../../services/mongo');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());

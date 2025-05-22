@@ -1,0 +1,57 @@
+@reference "@/index.css";
+
+.sessions-container {
+  @apply p-6 text-white;
+}
+
+.sessions-title {
+  @apply text-2xl font-bold mb-4;
+}
+
+.button-row {
+  @apply flex flex-wrap justify-center gap-4 mb-6;
+}
+
+.btn-red {
+  @apply bg-red-800 hover:bg-red-500 text-white px-4 py-2 rounded;
+}
+
+.btn-yellow {
+  @apply bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded;
+}
+
+.status-group {
+  @apply mb-6;
+}
+
+.status-header {
+  @apply text-xl font-semibold mb-2;
+}
+
+.session-list {
+  @apply border border-[#8cafFF] rounded p-3;
+}
+
+.session-item {
+  @apply cursor-pointer hover:bg-[#1f1f1f] px-3 py-2 rounded mb-2;
+}
+
+.session-detail {
+  @apply mt-6 border-t border-[#8cafFF] pt-4;
+}
+
+.session-header {
+  @apply flex justify-between items-center mb-2;
+}
+
+.session-detail-title {
+  @apply text-lg font-bold;
+}
+
+.button-group {
+  @apply flex flex-wrap justify-center gap-3;
+}
+
+.session-json {
+  @apply bg-[#1a1a1a] p-4 rounded overflow-x-auto text-sm;
+}

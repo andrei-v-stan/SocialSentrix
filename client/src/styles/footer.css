@@ -1,0 +1,22 @@
+@reference "@/index.css";
+
+
+#footer-section {
+    @apply items-center
+}
+
+.footer-link {
+    @apply no-underline text-[#8cafFF];
+}
+
+.footer-link:visited {
+    @apply text-[#8cafFF];
+}
+
+.footer-link:hover {
+    @apply text-[#7396e1];
+}
+
+.footer-link:active {
+    @apply text-[#5573be];
+}

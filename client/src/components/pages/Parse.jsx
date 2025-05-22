@@ -2,19 +2,19 @@ import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import '@/styles/redir.css';
 
-const Redir = () => {
+const Parse = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { code, message } = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return {
-      code: params.get('code') || '404',
-      message: params.get('message') || 'Page Not Found',
+      code: params.get('code') || '-',
+      message: params.get('message') || 'Nothing to see here',
     };
   }, [location.search]);
 
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(20);
 
   useEffect(() => {
     if (countdown <= 0) {
@@ -29,15 +29,20 @@ const Redir = () => {
 
   return (
     <div className="redir-container">
-      <p className="redir-title">⚠️Woops⚠️</p>
-      <p className="redir-subtitle">How did we get here?</p>
       <div className="redir-info">
-        <p className="redir-label">Error Code</p>
+        <p className="redir-label">Response Code</p>
         <p className="redir-value">{code}</p>
       </div>
       <div className="redir-info">
-        <p className="redir-label">Error Message</p>
-        <p className="redir-text">{message}</p>
+        <p className="redir-label">Response Message</p>
+        <p className="redir-text">
+          {message.split('\n').map((line, i) => (
+              <span key={i}>
+                {line}
+                <br />
+              </span>
+            ))}
+        </p>
       </div>
       <p className="redir-redirect">
         Redirecting to the homepage in <b>{countdown}</b> second{countdown !== 1 && 's'}...
@@ -47,4 +52,4 @@ const Redir = () => {
   );
 };
 
-export default Redir;
+export default Parse;
