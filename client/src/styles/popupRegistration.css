@@ -1,11 +1,11 @@
 @reference "@/index.css";
 
 .popup-overlay {
-    @apply fixed top-0 left-0 w-full h-full backdrop-blur-md bg-black/30 z-[100];
+    @apply fixed top-0 left-0 w-full h-full backdrop-blur-md bg-black/30 z-40;
 }
 
 .popup-box {
-    @apply absolute top-[75px] left-1/2 transform -translate-x-1/2 bg-[#121212] text-[#d8d8d8] p-8 rounded-[10px] shadow-md z-[101] w-[90%] max-w-[550px] min-w-[300px] text-3xl;
+    @apply absolute top-[75px] left-1/2 transform -translate-x-1/2 bg-[#121212] text-[#d8d8d8] p-8 rounded-[10px] shadow-md z-50 w-[90%] max-w-[550px] min-w-[300px] text-3xl;
     box-shadow: rgba(255, 255, 255, 0.16) 0px 3px 6px,
         rgba(255, 255, 255, 0.23) 0px 3px 6px;
 }

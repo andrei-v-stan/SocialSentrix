@@ -1,9 +1,17 @@
 /* eslint-disable no-extra-boolean-cast */
+import ReactDOM from 'react-dom'
 import { useEffect, useState } from 'react';
 import { TbUserQuestion } from 'react-icons/tb';
 import { BiSolidUserRectangle } from 'react-icons/bi';
 import Popup from '../subcomponents/RegistrationPopup';
 import '@/styles/Header.css';
+
+function PopupPortal(props) {
+  return ReactDOM.createPortal(
+    <Popup {...props} />,
+    document.body
+  );
+}
 
 async function validateSessionCookies({ setIsLoggedIn, setUserID, setSessionID, setFetchedEmail }) {
   try {
@@ -135,7 +143,7 @@ export default function Header() {
       </div>
 
       {showPopup && (
-        <Popup
+        <PopupPortal
           mode={isLoggedIn ? 'user' : (activeTab || 'login')}
           setActiveTab={setActiveTab}
           email={fetchedEmail}

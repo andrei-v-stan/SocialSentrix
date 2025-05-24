@@ -5,39 +5,47 @@
 }
 
 .sessions-title {
-  @apply text-2xl font-bold mb-4;
+  @apply text-3xl font-bold mb-4;
 }
 
 .button-row {
-  @apply flex flex-wrap justify-center gap-4 mb-6;
+  @apply flex flex-wrap justify-center gap-4 text-lg mb-16;
 }
 
 .btn-red {
-  @apply bg-red-800 hover:bg-red-500 text-white px-4 py-2 rounded;
+  @apply bg-red-800 hover:bg-red-600 text-white px-4 py-2 rounded border border-transparent hover:border-red-300 focus:border-red-400;
 }
 
-.btn-yellow {
-  @apply bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded;
+.btn-orange {
+  @apply bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded border border-transparent hover:border-orange-300 focus:border-orange-400;
+}
+
+.btn-gray {
+  @apply bg-gray-500 hover:bg-gray-400 text-white px-4 py-2 rounded border border-transparent hover:border-gray-300 focus:border-gray-400;
+}
+
+.btn-purple {
+  @apply bg-purple-700 hover:bg-purple-600 text-white px-4 py-2 rounded border border-transparent hover:border-purple-300 focus:border-purple-400;
 }
 
 .status-group {
-  @apply mb-6;
+  @apply mb-6 max-w-lg mx-auto;
 }
 
 .status-header {
-  @apply text-xl font-semibold mb-2;
+  @apply text-3xl font-semibold mb-4;
 }
 
 .session-list {
-  @apply border border-[#8cafFF] rounded p-3;
+  @apply border-2 border-[#8cafFF] rounded p-3 bg-neutral-900/75;
 }
 
 .session-item {
-  @apply cursor-pointer hover:bg-[#1f1f1f] px-3 py-2 rounded mb-2;
+  @apply cursor-pointer hover:bg-[#1f1f1f] px-3 py-2 rounded my-1 font-semibold;
 }
 
 .session-detail {
-  @apply mt-6 border-t border-[#8cafFF] pt-4;
+  @apply mt-6 border-t border-[#8cafFF] pt-4 max-w-4xl mx-auto;
 }
 
 .session-header {
@@ -45,7 +53,7 @@
 }
 
 .session-detail-title {
-  @apply text-lg font-bold;
+  @apply text-2xl font-bold;
 }
 
 .button-group {
@@ -55,3 +63,25 @@
 .session-json {
   @apply bg-[#1a1a1a] p-4 rounded overflow-x-auto text-sm;
 }
+
+.session-details-wrapper {
+  @apply grid grid-cols-1 sm:grid-cols-2 gap-4 bg-neutral-700/50 text-white p-4 rounded-lg shadow border-4 border-neutral-800/50 mt-4;
+}
+
+.session-details-status {
+  @apply col-span-1 sm:col-span-2 text-center text-2xl font-bold italic text-white mb-2;
+}
+
+.session-details-block {
+  @apply flex flex-col gap-6 border-2 border-neutral-400/50 rounded-xl p-4;
+}
+
+.session-details-label {
+  @apply font-bold text-lg;
+}
+
+
+.session-details-value {
+  @apply font-mono italic;
+}
+

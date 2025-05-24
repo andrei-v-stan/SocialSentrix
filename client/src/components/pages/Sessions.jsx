@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '@/styles/sessions.css';
 
@@ -8,6 +8,7 @@ export default function Sessions() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminSessions, setAdminSessions] = useState([]);
   const navigate = useNavigate();
+  const detailRef = useRef(null);
 
   const requestAdminPermission = async () => {
     await fetch(`${import.meta.env.VITE_API_URL}/api/mongodb/request-session-admin`, {
@@ -74,7 +75,38 @@ export default function Sessions() {
     CheckSession();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (detailRef.current && !detailRef.current.contains(event.target)) {
+        setSelectedSession(null);
+      }
+    };
+
+    if (selectedSession) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [selectedSession]);
+
+
+  const statusMap = {
+    'Confirmed': 'Confirmed ✅',
+    'Pending': 'Pending ⏳',
+    'Expired': 'Expired 🕒',
+    'Denied': 'Denied ⛔',
+  };
+  const statusButtonClassMap = {
+    'Denied': 'btn-red',
+    'Expired': 'btn-gray',
+    'Pending': 'btn-orange',
+  };
+
   const statusOrder = ['Confirmed', 'Pending', 'Expired', 'Denied'];
+
+
 
   return (
     <div className="sessions-container">
@@ -82,10 +114,10 @@ export default function Sessions() {
 
       {isAdmin && (
         <div className="button-row">
-          {['Pending', 'Expired', 'Denied'].map(status => (
+          {['Pending', 'Expired', 'Denied'].map((status) => (
             <button
               key={status}
-              className="btn-red"
+              className={statusButtonClassMap[status]}
               onClick={async () => {
                 const confirm = window.confirm(`Delete all "${status}" sessions linked to your email?`);
                 if (!confirm) return;
@@ -98,16 +130,19 @@ export default function Sessions() {
                 CheckSession();
               }}
             >
-              Delete All {status}
+              Delete All {statusMap[status]}
             </button>
           ))}
+
+
         </div>
       )}
 
-      {statusOrder.map(status => (
+      {statusOrder.map((status) => (
         grouped[status] ? (
           <div key={status} className="status-group">
-            <h3 className="status-header">{status}</h3>
+            <h3 className="status-header">{statusMap[status]}</h3>
+
             <ul className="session-list">
               {grouped[status].map(session => (
                 <li
@@ -124,7 +159,7 @@ export default function Sessions() {
       ))}
 
       {selectedSession && (
-        <div className="session-detail">
+        <div className="session-detail" ref={detailRef}>
           <div className="session-header">
             <h3 className="session-detail-title">Session Details</h3>
             <div className="button-group">
@@ -133,22 +168,31 @@ export default function Sessions() {
                 onClick={async () => {
                   const confirm = window.confirm(`Delete session ${selectedSession.sessionID}?`);
                   if (!confirm) return;
+
                   const res = await fetch(`${import.meta.env.VITE_API_URL}/api/mongodb/delete-session/${selectedSession.sessionID}`, {
                     method: 'DELETE',
                     credentials: 'include'
                   });
+
                   const data = await res.json();
                   alert(data.message || data.error);
+
+                  if (data.isOwnSession) {
+                    navigate('/');
+                    return;
+                  }
+
                   setSelectedSession(null);
                   CheckSession();
                 }}
+
               >
                 Delete Session
               </button>
 
               {adminSessions.includes(selectedSession.sessionID) && (
                 <button
-                  className="btn-yellow"
+                  className="btn-purple"
                   onClick={() => removeAdminAccess(selectedSession.sessionID)}
                 >
                   Revoke Admin Access
@@ -156,9 +200,51 @@ export default function Sessions() {
               )}
             </div>
           </div>
-          <pre className="session-json">
-            {JSON.stringify(selectedSession, null, 2)}
-          </pre>
+          <div className="session-details-wrapper">
+            <div className="session-details-status">
+              {statusMap[selectedSession.status] || selectedSession.status}
+            </div>
+
+            <div className="session-details-block">
+              <div>
+                <div className="session-details-label">Session ID</div>
+                <div className="session-details-value">{selectedSession.sessionID}</div>
+              </div>
+              <div>
+                <div className="session-details-label">Name</div>
+                <div className="session-details-value">{selectedSession.name}</div>
+              </div>
+              <div>
+                <div className="session-details-label">Comment</div>
+                <div className="session-details-value">{selectedSession.comment || 'N/A'}</div>
+              </div>
+              <div>
+                <div className="session-details-label">Created At</div>
+                <div className="session-details-value">{new Date(selectedSession.createdAt).toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div className="session-details-block">
+              <div>
+                <div className="session-details-label">User Agent</div>
+                <div className="session-details-value">{selectedSession.userAgent}</div>
+              </div>
+              <div>
+                <div className="session-details-label">IP Address</div>
+                <div className="session-details-value">{selectedSession.ip}</div>
+              </div>
+              <div>
+                <div className="session-details-label">Location</div>
+                <div className="session-details-value">{selectedSession.location}</div>
+              </div>
+              <div>
+                <div className="session-details-label">Expires At</div>
+                <div className="session-details-value">{new Date(selectedSession.expiresAt).toLocaleString()}</div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
       )}
     </div>
