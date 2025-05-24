@@ -47,12 +47,7 @@ router.get('/validate-cookies', async (req, res) => {
 });
 
 
-
-
-
-
-
-router.get('/get-session', async (req, res) => {
+router.get('/get-user-profiles', async (req, res) => {
   try {
     const userID = req.cookies?.userID;
     const platform = req.query.platform.toLowerCase();
@@ -81,15 +76,14 @@ router.get('/get-session', async (req, res) => {
 
     res.json({ ownedProfiles, associatedProfiles });
   } catch (err) {
-    console.error('❌ Error in /api/get-user-profiles:', err);
+    console.error('❌ Error in /get-user-profiles:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
 
-
-
-router.get('/get-user-profiles', async (req, res) => {
+/*
+router.get('/get-session', async (req, res) => {
   try {
     const userID = req.cookies?.userID;
     const platform = req.query.platform.toLowerCase();
@@ -144,6 +138,7 @@ router.get('/get-account-email', async (req, res) => {
     return res.status(500).json({ error: 'Internal server error.' });
   }
 });
+*/
 
 
 module.exports = router;

@@ -1,25 +1,12 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import Cookies from 'js-cookie';
-import {
-  Input,
-  Button,
-  Label,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem
-} from '@/components/ui/ui.js';
+import { Input, Button, Label, Card, CardHeader, CardTitle, CardContent, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/ui.js';
 import '@/styles/submitProfile.css';
 
 export default function SubmitProfile({ onResult }) {
-  const [input, setInput] = useState('u/');
-  const [platform, setPlatform] = useState('Reddit');
+  const [input, setInput] = useState('');
+  const [platform, setPlatform] = useState('');
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -28,34 +15,13 @@ export default function SubmitProfile({ onResult }) {
   const [blueskyUsername, setBlueskyUsername] = useState('');
   const [blueskyPassword, setBlueskyPassword] = useState('');
 
-
-  const inputRef = useRef();
-
-  const cleanPlatformInput = (rawInput, platform) => {
-    switch (platform) {
-      case 'Reddit':
-        return rawInput.replace(/^u\//i, '').toLowerCase();
-      case 'Bluesky':
-        return rawInput.replace(/^@/, '').toLowerCase();
-      default:
-        return rawInput.replace(/^[@/]+/, '').toLowerCase();
-    }
-  };
-
-  const addPlatformPrefix = (username, platform) => {
-    switch (platform) {
-      case 'Reddit':
-        return `u/${username}`;
-      case 'Bluesky':
-        return `@${username}`;
-      default:
-        return username;
-    }
+  const platformPlaceholders = {
+    Reddit: 'username | u/username | <username link>',
+    Bluesky: '@example.bsky.social'
   };
 
   const handleSubmit = useCallback(async (e) => {
     if (e?.preventDefault) e.preventDefault();
-
     setError('');
     setShowDropdown(false);
 
@@ -126,12 +92,8 @@ export default function SubmitProfile({ onResult }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          username: blueskyUsername,
-          password: blueskyPassword,
-        }),
+        body: JSON.stringify({ username: blueskyUsername, password: blueskyPassword })
       });
-
       const data = await res.json();
       if (data.token) {
         setToken(data.token);
@@ -145,55 +107,44 @@ export default function SubmitProfile({ onResult }) {
     }
   };
 
-
   const handleInputFocus = async () => {
     const userID = Cookies.get('userID');
-    if (!userID) return;
-
+    if (!userID || !platform) return;
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/mongodb/get-user-profiles?platform=${encodeURIComponent(platform)}`,
         { credentials: 'include' }
       );
-
       const data = await res.json();
-
       const owned = (data.ownedProfiles || []).map(u => ({ name: u, owned: true }));
-      const associated = (data.associatedProfiles || []).map(u => ({ name: u, owned: false }));
-
-      const combined = [...owned, ...associated];
-      const sorted = combined.sort((a, b) => a.name.localeCompare(b.name));
-      const cleanInput = cleanPlatformInput(input, platform);
-
-      const filtered = sorted.filter((s) =>
-        s.name.toLowerCase().includes(cleanInput)
-      );
-
-      setSuggestions(sorted);
+      const associated = (data.associatedProfiles || [])
+        .filter(u => !owned.some(o => o.name === u))
+        .map(u => ({ name: u, owned: false }));
+      const sortedOwned = owned.sort((a, b) => a.name.localeCompare(b.name));
+      const sortedAssociated = associated.sort((a, b) => a.name.localeCompare(b.name));
+      const combined = [...sortedOwned, ...sortedAssociated];
+      const filtered = combined.filter((s) => s.name.toLowerCase().includes(input.toLowerCase()));
+      setSuggestions(combined);
       setFilteredSuggestions(filtered);
       setShowDropdown(true);
-    } catch {
-      // console.error(err);
+    } catch (err) {
+      console.error('Fetching suggestions failed:', err);
     }
+  };
+
+  const handleInputBlur = () => {
+    setTimeout(() => setShowDropdown(false), 200);
   };
 
   const handleInputChange = (e) => {
     const val = e.target.value;
     setInput(val);
-
-    const cleanInput = cleanPlatformInput(val, platform);
-
-    const filtered = suggestions.filter((s) =>
-      s.name.toLowerCase().includes(cleanInput)
-    );
-
+    const filtered = suggestions.filter((s) => s.name.toLowerCase().includes(val.toLowerCase()));
     setFilteredSuggestions(filtered);
-    setShowDropdown(true);
   };
 
   const handleSuggestionClick = (name) => {
-    const withPrefix = addPlatformPrefix(name, platform);
-    setInput(withPrefix);
+    setInput(name);
     setShowDropdown(false);
   };
 
@@ -207,59 +158,57 @@ export default function SubmitProfile({ onResult }) {
           <form onSubmit={handleSubmit} className="submit-profile-form" autoComplete="off">
             <div className="submit-profile-field">
               <Label htmlFor="platform" className="submit-profile-label">Platform</Label>
-              <Select
-                value={platform}
-                onValueChange={(val) => {
-                  setPlatform(val);
-                  setInput(val === 'Reddit' ? 'u/' : '');
-                  setToken('');
-                  setError('');
-                  setSuggestions([]);
-                  setFilteredSuggestions([]);
-                  setShowDropdown(false);
-                }}
-              >
+              <Select value={platform} onValueChange={(val) => {
+                setPlatform(val);
+                setInput('');
+                setToken('');
+                setError('');
+                setSuggestions([]);
+                setFilteredSuggestions([]);
+                setShowDropdown(false);
+              }}>
                 <SelectTrigger className="submit-profile-select">
-                  <SelectValue placeholder="Select a platform" />
+                  <SelectValue placeholder="Select platform" />
                 </SelectTrigger>
-                
-                <SelectContent >
-                  <SelectItem value="Reddit">Reddit</SelectItem>
-                  <SelectItem value="Bluesky">Bluesky</SelectItem>
-                  <SelectItem value="X" disabled>X (coming soon)</SelectItem>
-                  <SelectItem value="Facebook" disabled>Facebook (coming soon)</SelectItem>
-                  <SelectItem value="Instagram" disabled>Instagram (coming soon)</SelectItem>
+                <SelectContent className="submit-profile-platform-dropdown">
+                  <SelectItem className="submit-profile-platform-dropdown-item" value="Reddit">Reddit</SelectItem>
+                  <SelectItem className="submit-profile-platform-dropdown-item" value="Bluesky">Bluesky</SelectItem>
+                  <SelectItem className="submit-profile-platform-dropdown-item" value="X" disabled>X</SelectItem>
+                  <SelectItem className="submit-profile-platform-dropdown-item" value="Facebook" disabled>Facebook</SelectItem>
+                  <SelectItem className="submit-profile-platform-dropdown-item" value="Instagram" disabled>Instagram</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="submit-profile-field" style={{ position: 'relative' }}>
-              <Label htmlFor="profile" className="submit-profile-label">Profile</Label>
-              <Input
-                id="profile"
-                type="text"
-                className="submit-profile-input"
-                value={input}
-                onChange={handleInputChange}
-                onFocus={handleInputFocus}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 100)}
-                placeholder="e.g., u/spez"
-                ref={inputRef}
-              />
-              {showDropdown && filteredSuggestions.length > 0 && (
-                <div className="submit-profile-dropdown">
-                  {filteredSuggestions.map((sugg, idx) => (
-                    <div
-                      key={idx}
-                      className="submit-profile-suggestion"
-                      onMouseDown={() => handleSuggestionClick(sugg.name)}
-                    >
-                      {sugg.owned ? <b><i>{sugg.name}</i></b> : sugg.name}
-                    </div>
-                  ))}
+            {platform && (
+              <div className="submit-profile-field">
+                <Label htmlFor="profile" className="submit-profile-label">Profile</Label>
+                <div className="submit-profile-autocomplete-wrapper">
+                  <Input
+                    type="text"
+                    className="submit-profile-input"
+                    placeholder={platformPlaceholders[platform] || 'Enter profile'}
+                    value={input}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                  />
+                  {showDropdown && filteredSuggestions.length > 0 && (
+                    <ul className="submit-profile-suggestions">
+                      {filteredSuggestions.map((sugg) => (
+                        <li
+                          key={sugg.name}
+                          className="submit-profile-suggestion-item"
+                          onClick={() => handleSuggestionClick(sugg.name)}
+                        >
+                          {sugg.owned ? <b>⭐ {sugg.name}</b> : sugg.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {platform === 'Bluesky' && !token && (
               <>
@@ -287,22 +236,21 @@ export default function SubmitProfile({ onResult }) {
                   />
                 </div>
 
-                <Button type="button" onClick={handleBlueskyLogin} className="submit-profile-button">
+                <Button type="button" onClick={handleBlueskyLogin} className="submit-signin-button">
                   Login to Bluesky
                 </Button>
               </>
             )}
 
-
-            <Button type="submit" disabled={!input} className="submit-profile-button">
-              Submit Profile
-            </Button>
-
-            {!token && (
-              <Button type="button" onClick={handleSignIn} className="submit-profile-button">
-                Sign in with {platform}
+            {!token && platform && (
+              <Button type="button" onClick={handleSignIn} className="submit-signin-button">
+                Sign into {platform}
               </Button>
             )}
+
+            <Button type="submit" disabled={!platform || !input} className="submit-profile-button">
+              Submit Profile
+            </Button>
           </form>
 
           {error && <p className="submit-profile-error">{error}</p>}

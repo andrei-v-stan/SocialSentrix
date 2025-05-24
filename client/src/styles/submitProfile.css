@@ -29,9 +29,16 @@
   @apply flex items-center gap-4 w-full max-w-md relative;
 }
 
-
 .submit-profile-label {
   @apply w-28 text-2xl font-bold text-[#d8d8d8];
+}
+
+.submit-profile-platform-dropdown {
+  @apply p-1;
+}
+
+.submit-profile-platform-dropdown-item {
+  @apply py-1 text-lg;
 }
 
 .submit-profile-input,
@@ -40,8 +47,12 @@
   @apply flex-1 bg-gray-100 text-gray-900 rounded-lg border border-gray-300 px-3 py-2 transition duration-200 ease-in-out;
 }
 
+.submit-signin-button {
+  @apply bg-gray-200 border-blue-400 text-lg;
+}
+
 .submit-profile-button {
-  @apply bg-gray-200 border-blue-400;
+  @apply bg-gray-200 border-blue-400 text-2xl;
 }
 
 .submit-profile-button:hover {
@@ -88,15 +99,21 @@
   @apply text-gray-400;
 }
 
-.submit-profile-dropdown {
-  @apply absolute top-full left-0 right-0 bg-white border border-t-0 max-h-36 overflow-y-auto shadow-md;
+.submit-profile-autocomplete-wrapper {
+  @apply w-full relative;
 }
 
-
-.submit-profile-suggestion {
-  @apply px-3 py-2 cursor-pointer truncate;
+.submit-profile-suggestions {
+  @apply absolute top-full left-0 right-0 p-2 bg-white border border-gray-300 max-h-40 overflow-y-auto z-10 shadow-md rounded-md mt-1;
+  scrollbar-width: thin;
+  scrollbar-color: #aaa transparent;
 }
 
-.submit-profile-suggestion:hover {
-  @apply bg-gray-100;
+.submit-profile-suggestion-item {
+  @apply px-3 py-2 cursor-pointer truncate text-lg text-gray-800 hover:bg-gray-100;
+  transition: background-color 0.2s ease;
+}
+
+.submit-profile-suggestion-item b {
+  @apply text-blue-600;
 }

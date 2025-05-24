@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDb, dbAccounts, dbProfiles, dbPendingConfirmations, dbPendingRequests } = require('../../services/mongo');
 
-router.get('/', async (req, res) => {
+router.get('/clear-collections', async (req, res) => {
   try {
     const db = getDb();
 

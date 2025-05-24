@@ -1,11 +1,23 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const querystring = require('querystring');
-const { ObjectId } = require('mongodb');
 const { getDb, dbAccounts } = require('../../services/mongo');
+const querystring = require('querystring');
 
 const CLIENT_ID = process.env.REDDIT_CLIENT_ID;
 const CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDDIT_REDIRECT_URI;
+
+/*
+ const crypto = require('crypto');
+ const ENCRYPTION_KEY = Buffer.from('$0c1@l$entr1xF!!'.padEnd(32, '#'));
+ const IV_LENGTH = 16;
+ function encryptToken(token) {
+   const iv = crypto.randomBytes(IV_LENGTH);
+   const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+   let encrypted = cipher.update(token, 'utf8', 'hex');
+   encrypted += cipher.final('hex');
+   return iv.toString('hex') + ':' + encrypted;
+ }
+*/
 
 exports.startRedditAuth = (req, res) => {
   const state = JSON.stringify({
@@ -56,11 +68,12 @@ exports.handleRedditCallback = async (req, res) => {
 
     const tokenData = await tokenRes.json();
     const accessToken = tokenData.access_token;
+    // const encryptedToken = encryptToken(accessToken);
 
     const meRes = await fetch('https://oauth.reddit.com/api/v1/me', {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        'User-Agent': 'SocialSentrix/1.0'
+        'User-Agent': 'SocialSentrixBot/1.0 (by u/SocialSentrix)'
       }
     });
     const meData = await meRes.json();
@@ -70,15 +83,15 @@ exports.handleRedditCallback = async (req, res) => {
     if (userID) {
       const db = getDb();
       const accounts = db.collection(dbAccounts);
-    
+
       const userAccount = await accounts.findOne({ id: userID });
-    
+
       if (userAccount) {
         const ownedProfileIndex = userAccount.ownedProfiles?.findIndex(
           (p) => p.platform === 'reddit' && p.user === currentUsername
         );
-        
-        if (ownedProfileIndex === -1 || ownedProfileIndex === undefined) {
+
+        if (ownedProfileIndex === -1) {
           await accounts.updateOne(
             { id: userID },
             {
@@ -87,6 +100,7 @@ exports.handleRedditCallback = async (req, res) => {
                   platform: 'reddit',
                   user: currentUsername,
                   reddit_token: accessToken
+                  // Replace 'accessToken' with 'encryptedToken'
                 }
               }
             }
@@ -95,12 +109,16 @@ exports.handleRedditCallback = async (req, res) => {
           const profileKey = `ownedProfiles.${ownedProfileIndex}.reddit_token`;
           await accounts.updateOne(
             { id: userID },
-            { $set: { [profileKey]: accessToken } }
+            {
+              $set: {
+                [profileKey]: accessToken
+                // Replace 'accessToken' with 'encryptedToken'
+              }
+            }
           );
         }
-        
       }
-    }    
+    }
 
     const redirectUrl = retryInput
       ? `${redirectTo}?input=${encodeURIComponent(retryInput)}`
@@ -111,12 +129,4 @@ exports.handleRedditCallback = async (req, res) => {
     console.error('❌ OAuth error:', err);
     res.status(500).json({ error: 'OAuth failed', details: err.message });
   }
-};
-
-exports.getRedditSession = (req, res) => {
-  const token = req.cookies.reddit_token;
-  if (!token) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  res.json({ token });
 };

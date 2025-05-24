@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, dbAccounts, dbPendingConfirmations } = require('../../services/mongo');
+const { getDb, dbAccounts, dbPendingRequests, dbPendingConfirmations } = require('../../services/mongo');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
@@ -70,9 +70,9 @@ router.post('/register-account', async (req, res) => {
 
 
 function sendRedirect(res, code, messageArray) {
-  return res.redirect(
-    `${process.env.VITE_FRONTEND_URL}/parse?code=${code}&message=${encodeURIComponent(messageArray.join('\n'))}`
-  );
+    return res.redirect(
+        `${process.env.VITE_FRONTEND_URL}/parse?code=${code}&message=${encodeURIComponent(messageArray.join('\n'))}`
+    );
 }
 
 router.get('/confirm-account', async (req, res) => {
@@ -117,5 +117,6 @@ router.get('/confirm-account', async (req, res) => {
         sendRedirect(res, '500', ['❌ Internal server error.']);
     }
 });
+
 
 module.exports = router;
