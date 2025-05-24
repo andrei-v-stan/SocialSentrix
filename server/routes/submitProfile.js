@@ -1,7 +1,22 @@
 const express = require('express');
-const router = express.Router();
+const { getDb, dbProfiles } = require('../services/mongo');
 const redditProfile = require('../controllers/reddit/redditProfile.js');
 const blueskyProfile = require('../controllers/bluesky/blueskyProfile.js');
+const router = express.Router();
+
+const safeFetch = async (url) => {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'SocialSentrixBot/1.0 (by u/SocialSentrix)' }
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`Status: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn(`Error checking user existence:`, err.message);
+    return null;
+  }
+};
 
 function extractUsername(platform, input) {
   switch (platform.toLowerCase()) {
@@ -47,19 +62,25 @@ function extractUsername(platform, input) {
   }
 }
 
-const safeFetch = async (url) => {
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'SocialSentrixBot/1.0 (by u/SocialSentrix)' }
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`Status: ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.warn(`Error checking user existence:`, err.message);
-    return null;
-  }
-};
+async function checkRedditUserExistsOrCached(username) {
+  const exists = await safeFetch(`https://www.reddit.com/user/${username}/about.json`);
+  if (exists && exists.data) return true;
+
+  const db = getDb();
+  const profilesCol = db.collection(dbProfiles);
+  const cached = await profilesCol.findOne({ platform: 'reddit', username });
+  return !!cached;
+}
+
+async function checkBlueskyUserExistsOrCached(username) {
+  const exists = await safeFetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${username}`);
+  if (exists && !exists.error) return true;
+
+  const db = getDb();
+  const profilesCol = db.collection(dbProfiles);
+  const cached = await profilesCol.findOne({ platform: 'bluesky', username });
+  return !!cached;
+}
 
 router.post('/', async (req, res) => {
   const { platform, input } = req.body;
@@ -78,27 +99,29 @@ router.post('/', async (req, res) => {
   try {
     switch (platform.toLowerCase()) {
       case 'reddit': {
-        const exists = await safeFetch(`https://www.reddit.com/user/${normalizedUsername}/about.json`);
-        if (!exists || !exists.data) {
+        const exists = await checkRedditUserExistsOrCached(normalizedUsername);
+        if (!exists) {
           return res.status(404).json({ error: `Reddit user '${normalizedUsername}' not found.` });
         }
         req.body.username = normalizedUsername;
         return await redditProfile.getRedditProfile(req, res);
       }
+
       case 'bluesky': {
-        const exists = await safeFetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${normalizedUsername}`);
-        if (!exists || exists.error) {
+        const exists = await checkBlueskyUserExistsOrCached(normalizedUsername);
+        if (!exists) {
           return res.status(404).json({ error: `Bluesky user '${normalizedUsername}' not found.` });
         }
         req.body.username = normalizedUsername;
         return await blueskyProfile.getBlueskyProfile(req, res);
       }
+
       default:
         return res.status(400).json({ error: `Unsupported platform: ${platform}` });
     }
   } catch (err) {
     console.error(`Error processing ${platform} profile:`, err);
-    res.status(500).json({ error: 'An error occurred while processing the profile.' });
+    return res.status(500).json({ error: 'An error occurred while processing the profile.' });
   }
 });
 

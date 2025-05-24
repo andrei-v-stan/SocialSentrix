@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Cookies from 'js-cookie';
 import { Input, Button, Label, Card, CardHeader, CardTitle, CardContent, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/ui.js';
@@ -12,8 +12,11 @@ export default function SubmitProfile({ onResult }) {
   const [suggestions, setSuggestions] = useState([]);
   const [filteredSuggestions, setFilteredSuggestions] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [blueskyUsername, setBlueskyUsername] = useState('');
   const [blueskyPassword, setBlueskyPassword] = useState('');
+
+  const inputRef = useRef();
 
   const platformPlaceholders = {
     Reddit: 'username | u/username | <username link>',
@@ -24,38 +27,51 @@ export default function SubmitProfile({ onResult }) {
     if (e?.preventDefault) e.preventDefault();
     setError('');
     setShowDropdown(false);
+    setIsSubmitting(true);
+
+    const profiles = input
+      .split('&')
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/submit-profile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ platform, input, token }),
-      });
-
-      const data = await response.json();
-
-      if (data.error || !data.posts || !data.comments) {
-        setError('Profile not found or does not exist.');
-      } else {
-        if (data.tokenInvalid == true) {
-          alert(`Your token for the account ${data.username} is invalid. Please sign in again to update the information.`);
-        }
-        onResult?.({
-          title: `${data.platform}: ${data.username}`,
-          content: {
-            posts: data.posts,
-            comments: data.comments,
-            upvotes: data.upvotes || [],
-            downvotes: data.downvotes || []
-          }
+      await Promise.all(profiles.map(async (profileInput) => {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/submit-profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ platform, input: profileInput, token }),
         });
-      }
-    } catch (error) {
-      console.error('Submit profile error:', error);
-      setError('Something went wrong while submitting the profile.');
+
+        const data = await response.json();
+
+        if (data.error || !data.posts || !data.comments) {
+          setError((prev) => `${prev}\n❌ "${profileInput}" not found or invalid.`);
+        } else {
+          if (data.tokenInvalid === true) {
+            alert(`Your token for ${data.username} is invalid. Please sign in again.`);
+          }
+
+          onResult?.({
+            title: `${data.platform}: ${data.username}`,
+            content: {
+              posts: data.posts,
+              comments: data.comments,
+              upvotes: data.upvotes || [],
+              downvotes: data.downvotes || [],
+            },
+          });
+        }
+      }));
+    } catch (err) {
+      console.error('Submit profile error:', err);
+      setError('Something went wrong while submitting one or more profiles.');
+    } finally {
+      setIsSubmitting(false);
+      setInput('');
     }
   }, [platform, input, token, onResult]);
+
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -139,14 +155,44 @@ export default function SubmitProfile({ onResult }) {
   const handleInputChange = (e) => {
     const val = e.target.value;
     setInput(val);
-    const filtered = suggestions.filter((s) => s.name.toLowerCase().includes(val.toLowerCase()));
+
+    const segments = val.split('&');
+    const lastSegment = segments[segments.length - 1].trim().toLowerCase();
+    const filtered = suggestions.filter((s) =>
+      s.name.toLowerCase().includes(lastSegment)
+    );
+
     setFilteredSuggestions(filtered);
+    setShowDropdown(lastSegment.length > 0 || val.endsWith('&') || val.endsWith(' '));
+  };
+
+  const handleInputClick = () => {
+    const segments = input.split('&');
+    const lastSegment = segments[segments.length - 1].trim().toLowerCase();
+    const filtered = suggestions.filter((s) =>
+      s.name.toLowerCase().includes(lastSegment)
+    );
+    setFilteredSuggestions(filtered);
+
+    const shouldShow = lastSegment.length > 0 || input.endsWith('&') || input.endsWith(' ') || input.trim().length < 1;
+    setShowDropdown(shouldShow);
   };
 
   const handleSuggestionClick = (name) => {
-    setInput(name);
-    setShowDropdown(false);
+    const segments = input.split('&');
+    segments[segments.length - 1] = name.trim();
+    let newInput = segments.map(s => s.trim()).join(' & ') + ' & ';
+
+    setInput(newInput);
+    inputRef.current?.focus();
+
+    const filtered = suggestions.filter((s) =>
+      s.name.toLowerCase().includes('')
+    );
+    setFilteredSuggestions(filtered);
+    setShowDropdown(true);
   };
+
 
   return (
     <div className="submit-profile-container">
@@ -189,9 +235,11 @@ export default function SubmitProfile({ onResult }) {
                     className="submit-profile-input"
                     placeholder={platformPlaceholders[platform] || 'Enter profile'}
                     value={input}
+                    ref={inputRef}
                     onChange={handleInputChange}
                     onFocus={handleInputFocus}
                     onBlur={handleInputBlur}
+                    onClick={handleInputClick}
                   />
                   {showDropdown && filteredSuggestions.length > 0 && (
                     <ul className="submit-profile-suggestions">
@@ -248,9 +296,15 @@ export default function SubmitProfile({ onResult }) {
               </Button>
             )}
 
-            <Button type="submit" disabled={!platform || !input} className="submit-profile-button">
-              Submit Profile
+            <Button
+              type="submit"
+              disabled={!platform || !input || isSubmitting}
+              className="submit-profile-button"
+            >
+              {isSubmitting ? <span className="loading-spinner"></span> : 'Submit Profile'}
+
             </Button>
+
           </form>
 
           {error && <p className="submit-profile-error">{error}</p>}

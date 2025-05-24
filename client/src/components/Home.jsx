@@ -13,13 +13,12 @@ export default function Home() {
     const [platform, username] = r.title.split(':').map(x => x.trim());
 
     if (globalCompareList.length > 0) {
-      console.log('⚡ Compare mode active, associating new data to existing compare graphs (without duplicates)');
-
+      // console.log('Compare mode active: Associating new data to existing compare graphs.');
       const newAssociations = {};
-
       Object.entries(r.content || {}).forEach(([category, dataArray]) => {
         if (Array.isArray(dataArray) && dataArray.length > 0) {
           const matchingSubwindows = globalCompareList.filter(subId => subId.endsWith(`-${category}`));
+          // console.log('Matching subwindows for:', category, ':', matchingSubwindows);
           matchingSubwindows.forEach(subwindowId => {
             const currentAssoc = associationMap[subwindowId] || {};
             const alreadyExists = Object.values(currentAssoc).some(
@@ -41,12 +40,40 @@ export default function Home() {
       });
 
       if (Object.keys(newAssociations).length > 0) {
-        setAssociationMap(prev => ({
-          ...prev,
-          ...newAssociations
-        }));
-      } else {
-        console.log('✅ Profile already fully associated with active compare graphs, no update needed.');
+        // console.log('Before merge:', JSON.stringify(associationMap, null, 2));
+        // console.log('New associations:', JSON.stringify(newAssociations, null, 2));
+        setAssociationMap(prev => {
+          const updated = { ...prev };
+
+          for (const subId in newAssociations) {
+            const existing = prev[subId] || {};
+            const incoming = newAssociations[subId] || {};
+
+            const merged = { ...existing };
+            const alreadyExists = (entry) =>
+              Object.values(merged).some(
+                existing =>
+                  existing.username === entry.username &&
+                  existing.platform === entry.platform &&
+                  existing.category === entry.category
+              );
+            Object.values(incoming).forEach(entry => {
+              if (!alreadyExists(entry)) {
+                const nextIndex = Object.keys(merged).length;
+                merged[nextIndex] = entry;
+              }
+            });
+            updated[subId] = merged;
+          }
+          return updated;
+        });
+
+        setTimeout(() => {
+          // console.log('[S] After merge:', JSON.stringify(associationMap, null, 2));
+        }, 200);
+      }
+      else {
+        // console.log('[S] Profile already fully associated with active compare graphs.');
       }
 
       setResultsMap(prev => ({
@@ -59,8 +86,7 @@ export default function Home() {
       }));
 
     } else {
-      console.log('✨ Normal mode, creating a new window:', r);
-
+      // console.log('[N] Normal mode, creating a new window:', r);
       const newWindow = {
         id: windowId,
         title: r.title,
@@ -68,7 +94,7 @@ export default function Home() {
       };
 
       const newAssociations = {};
-
+      // console.log('Adding new associations for:', platform, username);
       Object.entries(r.content || {}).forEach(([category, dataArray]) => {
         if (Array.isArray(dataArray) && dataArray.length > 0) {
           const subwindowId = `${windowId}-${category}`;
@@ -83,12 +109,10 @@ export default function Home() {
       });
 
       setResults(prev => [...prev, newWindow]);
-
       setAssociationMap(prev => ({
         ...prev,
         ...newAssociations
       }));
-
       setResultsMap(prev => ({
         ...prev,
         [windowId]: {
@@ -101,11 +125,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log('📋 Current Results Map:', resultsMap);
+    // console.log('[M] Current Results Map:', resultsMap);
   }, [resultsMap]);
 
   useEffect(() => {
-    console.log('📋 Current Association Map:', associationMap);
+    // console.log('[M] Current Association Map:', associationMap);
   }, [associationMap]);
 
   return (
