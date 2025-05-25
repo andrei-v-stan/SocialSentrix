@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FaRegWindowClose, FaExpandArrowsAlt } from 'react-icons/fa';
+import { FaRegWindowClose, FaExpandArrowsAlt, FaDownload } from 'react-icons/fa';
 import { FaWindowMinimize, FaWindowRestore, FaWindowMaximize } from 'react-icons/fa6';
 import { MdPersonAddAlt1, MdPersonOff } from 'react-icons/md';
+import { toPng, toSvg } from 'html-to-image';
+import download from 'downloadjs';
 import SubWindow from './SubWindow';
 import ChartBlock from './ChartBlock';
 
@@ -19,6 +21,9 @@ export default function SortableResultWindow({ id, title, content, platform, use
     return keys;
   });
   const [seticResult, setSeticResult] = useState(null);
+  const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+  const windowRef = useRef();
+
 
   const isWindowInCompareMode = graphOrder.every(key => globalCompareList.includes(`${id}-${key}`));
 
@@ -61,6 +66,78 @@ export default function SortableResultWindow({ id, title, content, platform, use
   const closeGraph = (key) => setHiddenGraphs(prev => [...prev, key]);
   const restoreAllGraphs = () => setHiddenGraphs([]);
 
+  const handleDownloadAll = async (format) => {
+    if (!windowRef.current) return;
+    const nodes = windowRef.current.querySelectorAll('.chart-capture-target');
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const chartBlock = node.closest('.chart-block');
+      const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
+      const { labels = [] } = JSON.parse(dataAttr);
+
+      const subwindowTitle = chartBlock?.closest('.graph-subwindow')?.querySelector('.window-title')?.textContent?.trim() || `Graph_${i + 1}`;
+      const titlePart = subwindowTitle.replace(/[^a-zA-Z0-9-]/g, '_');
+      const platformMap = {};
+
+      labels.forEach(label => {
+        const [platform, user] = label.split(':').map(s => s.trim());
+        if (!platform || !user) return;
+        if (!platformMap[platform]) platformMap[platform] = [];
+        platformMap[platform].push(user);
+      });
+
+      const labelPart = Object.entries(platformMap)
+        .map(([platform, users]) => `[${platform}]-(${users.join('+')})`)
+        .join('&');
+
+      const fileName = `${titlePart}=${labelPart}`;
+
+      const originalStyle = {
+        width: node.style.width,
+        overflow: node.style.overflow
+      };
+
+      node.style.width = 'fit-content';
+      node.style.overflow = 'visible';
+
+      try {
+        if (format === 'png') {
+          const dataUrl = await toPng(node, { pixelRatio: 3 });
+          download(dataUrl, `${fileName}.${format}`);
+        } else if (format === 'svg') {
+          const dataUrl = await toSvg(node);
+          download(dataUrl, `${fileName}.${format}`);
+        } else if (format === 'csv') {
+          const csvData = generateCSVFromChart(chartBlock);
+          const blob = new Blob([csvData], { type: 'text/csv' });
+          download(blob, `${fileName}.${format}`);
+
+        }
+      } catch (err) {
+        console.error(`Failed to download graph ${i + 1}:`, err);
+      }
+
+      node.style.width = originalStyle.width;
+      node.style.overflow = originalStyle.overflow;
+    }
+
+    setShowDownloadDropdown(false);
+  };
+
+  const generateCSVFromChart = (chartBlock) => {
+    const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
+    try {
+      const parsed = JSON.parse(dataAttr);
+      const headers = ['timestamp', ...parsed.labels];
+      const rows = parsed.data.map(row => [row.timestamp, ...parsed.labels.map(l => row[l] || 0)]);
+      return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    } catch {
+      return 'timestamp,value\n';
+    }
+  };
+
+
   const handleCalculateSETIC = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reddit/calculate-setic?username=${username}`, {
@@ -97,14 +174,28 @@ export default function SortableResultWindow({ id, title, content, platform, use
     </div>
   );
 
+
+
   return (
-    <div ref={setNodeRef} style={style} className={`result-window ${minimized ? 'minimized' : ''} ${maximized ? 'maximized' : ''}`}>
+    <div
+      ref={(el) => {
+        setNodeRef(el);
+        windowRef.current = el;
+      }}
+      style={style}
+      className={`result-window ${minimized ? 'minimized' : ''} ${maximized ? 'maximized' : ''}`}
+    >
+
       <div className="window-bar" {...attributes}>
         <span className="window-title" {...listeners}>{title}</span>
         <div className="window-controls">
           <button onClick={handleMainCompareToggle}>
             {isWindowInCompareMode ? <MdPersonOff /> : <MdPersonAddAlt1 />}
           </button>
+          <button onClick={() => setShowDownloadDropdown(prev => !prev)}>
+            <FaDownload />
+          </button>
+
           <button onClick={() => setMinimized(prev => !prev)}>
             {minimized ? <FaWindowMaximize /> : <FaWindowMinimize />}
           </button>
@@ -115,6 +206,14 @@ export default function SortableResultWindow({ id, title, content, platform, use
             <FaRegWindowClose style={{ fontSize: '2rem', fontWeight: 'bold' }} />
           </button>
         </div>
+        {showDownloadDropdown && (
+          <div className="download-dropdown">
+            <button onClick={() => handleDownloadAll('png')}>Download All as PNG</button>
+            <button onClick={() => handleDownloadAll('svg')}>Download All as SVG</button>
+            <button onClick={() => handleDownloadAll('csv')}>Export All as CSV</button>
+          </div>
+        )}
+
       </div>
 
       {!minimized && (

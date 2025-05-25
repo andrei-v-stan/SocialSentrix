@@ -28,6 +28,25 @@ const handleDownload = async (format) => {
   const node = contentRef.current.querySelector('.chart-capture-target');
   if (!node) return;
 
+  const chartBlock = node.closest('.chart-block');
+  const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
+  const { labels = [] } = JSON.parse(dataAttr);
+
+  const platformMap = {};
+  labels.forEach(label => {
+    const [platform, user] = label.split(':').map(s => s.trim());
+    if (!platform || !user) return;
+    if (!platformMap[platform]) platformMap[platform] = [];
+    platformMap[platform].push(user);
+  });
+
+  const labelPart = Object.entries(platformMap)
+    .map(([platform, users]) => `[${platform}]-(${users.join('+')})`)
+    .join('&');
+
+  const safeTitle = title.replace(/[^a-zA-Z0-9-]/g, '_');
+  const fileName = `${safeTitle}=${labelPart}`;
+
   const originalStyle = {
     width: node.style.width,
     overflow: node.style.overflow
@@ -39,14 +58,14 @@ const handleDownload = async (format) => {
   try {
     if (format === 'png') {
       const dataUrl = await toPng(node, { pixelRatio: 3 });
-      download(dataUrl, `${title}.png`);
+      download(dataUrl, `${fileName}.${format}`);
     } else if (format === 'svg') {
       const dataUrl = await toSvg(node);
-      download(dataUrl, `${title}.svg`);
+      download(dataUrl, `${fileName}.${format}`);
     } else if (format === 'csv') {
       const csvData = generateCSVFromChart(node);
       const blob = new Blob([csvData], { type: 'text/csv' });
-      download(blob, `${title}.csv`);
+      download(blob, `${fileName}.${format}`);
     }
   } catch (err) {
     console.error('Download failed:', err);
@@ -59,18 +78,19 @@ const handleDownload = async (format) => {
 };
 
 
-const generateCSVFromChart = (node) => {
-  const chartBlock = node.closest('.chart-block');
-  const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
-  try {
-    const parsed = JSON.parse(dataAttr);
-    const headers = ['timestamp', ...parsed.labels];
-    const rows = parsed.data.map(row => [row.timestamp, ...parsed.labels.map(l => row[l] || 0)]);
-    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-  } catch {
-    return 'timestamp,value\n';
-  }
-};
+
+  const generateCSVFromChart = (node) => {
+    const chartBlock = node.closest('.chart-block');
+    const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
+    try {
+      const parsed = JSON.parse(dataAttr);
+      const headers = ['timestamp', ...parsed.labels];
+      const rows = parsed.data.map(row => [row.timestamp, ...parsed.labels.map(l => row[l] || 0)]);
+      return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    } catch {
+      return 'timestamp,value\n';
+    }
+  };
 
 
   return (
@@ -82,9 +102,11 @@ const generateCSVFromChart = (node) => {
       <div className="window-bar" {...attributes}>
         <span className="window-title" {...listeners}>{title}</span>
         <div className="window-controls">
-          <button onClick={() => toggleCompare(id)}>
-            {isCompared ? <MdPersonOff /> : <MdPersonAddAlt1 />}
-          </button>
+          {!id.endsWith('-setic') && (
+            <button onClick={() => toggleCompare(id)}>
+              {isCompared ? <MdPersonOff /> : <MdPersonAddAlt1 />}
+            </button>
+          )}
           <button onClick={() => setMinimized(prev => !prev)}>
             {minimized ? <FaWindowMaximize /> : <FaWindowMinimize />}
           </button>
