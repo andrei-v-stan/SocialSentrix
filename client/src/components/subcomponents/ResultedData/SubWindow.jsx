@@ -23,61 +23,59 @@ export default function SubWindow({ id, title, children, onClose, compareModeLis
     zIndex: maximized ? 100 : isDragging ? 10 : 1,
   };
 
-const handleDownload = async (format) => {
-  if (!contentRef.current) return;
-  const node = contentRef.current.querySelector('.chart-capture-target');
-  if (!node) return;
+  const handleDownload = async (format) => {
+    if (!contentRef.current) return;
+    const node = contentRef.current.querySelector('.chart-capture-target');
+    if (!node) return;
 
-  const chartBlock = node.closest('.chart-block');
-  const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
-  const { labels = [] } = JSON.parse(dataAttr);
+    const chartBlock = node.closest('.chart-block');
+    const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
+    const { labels = [] } = JSON.parse(dataAttr);
 
-  const platformMap = {};
-  labels.forEach(label => {
-    const [platform, user] = label.split(':').map(s => s.trim());
-    if (!platform || !user) return;
-    if (!platformMap[platform]) platformMap[platform] = [];
-    platformMap[platform].push(user);
-  });
+    const platformMap = {};
+    labels.forEach(label => {
+      const [platform, user] = label.split(':').map(s => s.trim());
+      if (!platform || !user) return;
+      if (!platformMap[platform]) platformMap[platform] = [];
+      platformMap[platform].push(user);
+    });
 
-  const labelPart = Object.entries(platformMap)
-    .map(([platform, users]) => `[${platform}]-(${users.join('+')})`)
-    .join('&');
+    const labelPart = Object.entries(platformMap)
+      .map(([platform, users]) => `[${platform}]-(${users.join('+')})`)
+      .join('&');
 
-  const safeTitle = title.replace(/[^a-zA-Z0-9-]/g, '_');
-  const fileName = `${safeTitle}=${labelPart}`;
+    const safeTitle = title.replace(/[^a-zA-Z0-9-]/g, '_');
+    const fileName = `${safeTitle}=${labelPart}`;
 
-  const originalStyle = {
-    width: node.style.width,
-    overflow: node.style.overflow
-  };
+    const originalStyle = {
+      width: node.style.width,
+      overflow: node.style.overflow
+    };
 
-  node.style.width = 'fit-content';
-  node.style.overflow = 'visible';
+    node.style.width = 'fit-content';
+    node.style.overflow = 'visible';
 
-  try {
-    if (format === 'png') {
-      const dataUrl = await toPng(node, { pixelRatio: 3 });
-      download(dataUrl, `${fileName}.${format}`);
-    } else if (format === 'svg') {
-      const dataUrl = await toSvg(node);
-      download(dataUrl, `${fileName}.${format}`);
-    } else if (format === 'csv') {
-      const csvData = generateCSVFromChart(node);
-      const blob = new Blob([csvData], { type: 'text/csv' });
-      download(blob, `${fileName}.${format}`);
+    try {
+      if (format === 'png') {
+        const dataUrl = await toPng(node, { pixelRatio: 3 });
+        download(dataUrl, `${fileName}.${format}`);
+      } else if (format === 'svg') {
+        const dataUrl = await toSvg(node);
+        download(dataUrl, `${fileName}.${format}`);
+      } else if (format === 'csv') {
+        const csvData = generateCSVFromChart(node);
+        const blob = new Blob([csvData], { type: 'text/csv' });
+        download(blob, `${fileName}.${format}`);
+      }
+    } catch (err) {
+      console.error('Download failed:', err);
     }
-  } catch (err) {
-    console.error('Download failed:', err);
-  }
 
-  node.style.width = originalStyle.width;
-  node.style.overflow = originalStyle.overflow;
+    node.style.width = originalStyle.width;
+    node.style.overflow = originalStyle.overflow;
 
-  setShowDownload(false);
-};
-
-
+    setShowDownload(false);
+  };
 
   const generateCSVFromChart = (node) => {
     const chartBlock = node.closest('.chart-block');
@@ -100,21 +98,25 @@ const handleDownload = async (format) => {
       className={`graph-subwindow ${minimized ? 'minimized' : ''} ${maximized ? 'maximized' : ''}`}
     >
       <div className="window-bar" {...attributes}>
-        <span className="window-title" {...listeners}>{title}</span>
         <div className="window-controls">
+          {!id.endsWith('-setic') && (
+            <button onClick={() => setShowDownload(prev => !prev)}>
+              <FaDownload />
+            </button>
+          )}
           {!id.endsWith('-setic') && (
             <button onClick={() => toggleCompare(id)}>
               {isCompared ? <MdPersonOff /> : <MdPersonAddAlt1 />}
             </button>
           )}
+        </div>
+        <span className="window-title" {...listeners}>{title}</span>
+        <div className="window-controls">
           <button onClick={() => setMinimized(prev => !prev)}>
             {minimized ? <FaWindowMaximize /> : <FaWindowMinimize />}
           </button>
           <button onClick={() => setMaximized(prev => !prev)}>
             {maximized ? <FaWindowRestore /> : <FaExpandArrowsAlt />}
-          </button>
-          <button onClick={() => setShowDownload(prev => !prev)}>
-            <FaDownload />
           </button>
           <button onClick={onClose}>
             <FaRegWindowClose style={{ fontSize: '1.5rem', fontWeight: 'bold' }} />

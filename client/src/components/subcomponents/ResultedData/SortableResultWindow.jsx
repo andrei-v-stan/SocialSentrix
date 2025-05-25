@@ -137,7 +137,6 @@ export default function SortableResultWindow({ id, title, content, platform, use
     }
   };
 
-
   const handleCalculateSETIC = async () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reddit/calculate-setic?username=${username}`, {
@@ -174,8 +173,6 @@ export default function SortableResultWindow({ id, title, content, platform, use
     </div>
   );
 
-
-
   return (
     <div
       ref={(el) => {
@@ -187,15 +184,16 @@ export default function SortableResultWindow({ id, title, content, platform, use
     >
 
       <div className="window-bar" {...attributes}>
-        <span className="window-title" {...listeners}>{title}</span>
         <div className="window-controls">
-          <button onClick={handleMainCompareToggle}>
-            {isWindowInCompareMode ? <MdPersonOff /> : <MdPersonAddAlt1 />}
-          </button>
           <button onClick={() => setShowDownloadDropdown(prev => !prev)}>
             <FaDownload />
           </button>
-
+          <button onClick={handleMainCompareToggle}>
+            {isWindowInCompareMode ? <MdPersonOff /> : <MdPersonAddAlt1 />}
+          </button>
+        </div>
+        <span className="window-title" {...listeners}>{title}</span>
+        <div className="window-controls">
           <button onClick={() => setMinimized(prev => !prev)}>
             {minimized ? <FaWindowMaximize /> : <FaWindowMinimize />}
           </button>

@@ -1,269 +1,287 @@
+@reference "@/index.css";
+
+/* Container */
 .resulted-data-container.sortable {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  align-items: center;
+  @apply flex flex-col gap-3 p-4 items-center;
 }
 
+/* Main Window */
 .result-window {
-  width: 100%;
-  max-width: 800px;
-  background-color: #1e1e1e;
-  color: #eaeaea;
-  border: 1px solid #333;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
-  position: relative;
-  transition: all 0.2s ease;
+  @apply w-full max-w-[800px] bg-[#1e1e1e] text-[#eaeaea] border border-[#333] rounded-lg shadow-lg relative transition-all duration-200 ease-in-out;
 }
 
 .result-window.minimized .window-content {
-  display: none;
+  @apply hidden;
 }
 
 .result-window.maximized {
-  position: fixed !important;
-  top: 0; left: 0; right: 0; bottom: 0;
-  width: 100% !important;
-  height: 100vh !important;
-  border-radius: 0;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
+  @apply fixed inset-0 w-full h-screen rounded-none z-[1000] flex flex-col;
 }
 
+/* Title Bar */
 .window-bar {
-  background-color: #2c2c2c;
-  padding: 0.5rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-  color: white;
-  cursor: grab;
-  user-select: none;
+  @apply bg-[#2c2c2c] px-4 py-2 flex justify-between items-center font-bold text-white cursor-grab select-none;
 }
 
 .window-bar:active {
-  cursor: grabbing;
+  @apply cursor-grabbing;
 }
 
 .window-title {
-  flex-grow: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  @apply grow overflow-hidden text-ellipsis whitespace-nowrap;
 }
 
+/* Window Controls */
 .window-controls button {
-  margin-left: 0.5rem;
-  font-size: 1.4rem;
-  background: none;
-  border: none;
-  color: #aaa;
-  cursor: pointer;
-  transition: color 0.2s ease;
+  @apply ml-2 text-[1.4rem] bg-none border-none text-[#aaa] cursor-pointer transition-colors duration-200 ease-in-out;
 }
 
 .window-controls button:hover {
-  color: #fff;
+  @apply text-white;
 }
 
+.window-controls button.active {
+  @apply bg-blue-500 text-white;
+}
+
+/* Content Area */
 .window-content {
-  flex: 1;
-  padding: 1rem;
-  background-color: #121212;
-  border-top: 1px solid #333;
-  overflow: auto;
+  @apply flex-1 p-4 bg-[#121212] border-t border-[#333] overflow-auto;
 }
 
-.chart-block {
-  position: relative;
-  overflow-x: auto;
-  overflow-y: hidden;
-  width: 100%;
-  padding: 1rem;
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 10px;
-  margin-bottom: 1rem;
-}
-
+/* Chart Wrapper */
 .chart-inner {
-  min-width: 800px;
+  @apply min-w-[800px];
 }
 
 .recharts-tooltip-wrapper {
-  z-index: 100;
+  @apply z-[100];
 }
 
 .recharts-default-tooltip {
-  background: #1e1e1e !important;
-  border: 1px solid #444 !important;
-  border-radius: 8px !important;
-  padding: 0.75rem !important;
-  color: #eee !important;
-  font-size: 0.85rem;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  @apply bg-[#1e1e1e] border border-[#444] rounded-lg p-3 text-[#eee] text-sm shadow-lg;
 }
 
 .recharts-tooltip-item {
-  color: #ccc !important;
+  @apply text-[#ccc];
 }
 
+/* Scrollbars */
 .chart-block::-webkit-scrollbar {
   height: 8px;
 }
+
 .chart-block::-webkit-scrollbar-thumb {
   background: #555;
   border-radius: 4px;
 }
+
 .chart-block::-webkit-scrollbar-track {
   background: #222;
 }
 
-
-
-.chart-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  align-items: center;
-}
-
-.chart-controls button {
-  padding: 5px 10px;
-  border-radius: 6px;
-  background: #2d2d2d;
-  color: #ccc;
-  border: 1px solid #444;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.chart-controls button.active {
-  background: #8884d8;
-  color: white;
-  font-weight: bold;
-}
-
+/* Chart Metric Selector */
 .chart-metric-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin: 1rem 0;
+  @apply flex flex-col gap-2 my-4;
 }
 
 .chart-metric-selector button {
-  padding: 4px 8px;
-  background: #2d2d2d;
-  color: #ccc;
-  border: 1px solid #444;
-  border-radius: 4px;
-  cursor: pointer;
+  @apply px-2 py-1 bg-[#2d2d2d] text-[#ccc] border border-[#444] rounded cursor-pointer;
 }
 
 .chart-metric-selector button.active {
-  background: #444;
-  color: white;
-  border-color: #666;
+  @apply bg-[#444] text-white border-[#666];
 }
 
-.point-details {
-  background: #1e1e1e;
-  color: #eee;
-  border: 1px solid #444;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-}
-
-.point-details .point-entry {
-  margin-bottom: 1rem;
-}
-
-.point-details pre {
-  background: #111;
-  color: #ccc;
-  padding: 0.5rem;
-  border-radius: 6px;
-  overflow-x: auto;
-  white-space: pre-wrap;
-}
-
+/* Restore Graph Button */
 .restore-graphs-button {
-  margin-top: 1rem;
-  padding: 8px 16px;
-  background: #333;
-  border: 1px solid #555;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
+  @apply mt-4 px-4 py-2 bg-[#333] border border-[#555] text-white rounded-md cursor-pointer hover:bg-[#555];
 }
 
-.restore-graphs-button:hover {
-  background: #555;
-}
-
-.date-pickers {
-  display: flex;
-  gap: 1rem;
-  margin: 0.5rem 0 1rem 0;
-  flex-wrap: wrap;
-}
-
-.single-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.single-picker label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #ccc;
-  margin-bottom: 0.25rem;
-}
-
+/* Empty Chart Style */
 .empty-chart {
-  background: #1e1e1e;
-  border: 1px dashed #444;
-  border-radius: 10px;
-  margin-bottom: 1rem;
+  @apply bg-[#1e1e1e] border border-dashed border-[#444] rounded-xl mb-4;
 }
 
+/* Zoom Controls */
 .zoom-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  @apply flex items-center gap-2;
 }
 
 .zoom-controls button {
-  background: #2d2d2d;
-  border: 1px solid #444;
-  color: #ccc;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.zoom-controls button:hover {
-  background: #444;
+  @apply bg-[#2d2d2d] border border-[#444] text-[#ccc] px-2 py-1 rounded cursor-pointer hover:bg-[#444];
 }
 
 .zoom-controls input {
-  width: 60px;
-  text-align: center;
-  background: #1e1e1e;
-  color: #eee;
-  border: 1px solid #555;
-  border-radius: 4px;
-  padding: 4px;
+  @apply w-[60px] text-center bg-[#1e1e1e] text-[#eee] border border-[#555] rounded px-1 py-1;
 }
 
-.window-controls button.active {
-  background-color: #3b82f6;
-  color: white;
+/* Chart Block */
+.chart-block {
+  @apply relative overflow-x-auto overflow-y-hidden w-full p-4 bg-[#1a1a1a] border border-[#333] rounded-xl mb-4;
+}
+
+/* Chart Controls */
+.chart-controls {
+  @apply flex flex-wrap gap-2 mb-4 items-center;
+}
+
+.chart-controls button {
+  @apply px-3 py-1.5 rounded-md bg-[#2d2d2d] text-[#ccc] border border-[#444] cursor-pointer text-sm;
+}
+
+.chart-controls button.active {
+  @apply bg-[#8884d8] text-white font-bold;
+}
+
+/* Y-Axis Controls Placeholder */
+.y-axis-controls {
+  /* Define if needed */
+}
+
+/* Date Picker Controls */
+.date-pickers {
+  @apply flex gap-4 my-2 flex-wrap;
+}
+
+.single-picker {
+  @apply flex flex-col gap-1;
+}
+
+.single-picker label {
+  @apply text-sm font-semibold text-[#ccc] mb-1;
+}
+
+
+
+
+
+
+
+/* ChartBlock */
+
+.chart-block-horizontal-scroll-container {
+  @apply overflow-x-auto overflow-y-hidden w-full h-full;
+}
+
+.chart-block-horizontal-scroll {
+  @apply w-full h-full relative;
+}
+
+.chart-capture-target {
+  @apply w-full h-full;
+}
+
+.chart-block-container {
+  @apply w-full h-full;
+}
+
+.chart-block-point-tooltip {
+  @apply !bg-[#2c2c2c] border border-[#444] rounded-lg text-[#eee] text-sm font-semibold shadow-[0_0_8px_rgba(0,0,0,0.6)];
+}
+
+
+.chart-block-time-range-empty {
+  @apply absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#aaa] text-2xl font-bold text-center pointer-events-none;
+}
+
+.point-details {
+  @apply bg-[#1e1e1e0c] text-[#eee] border border-[#444] p-4 rounded-lg mt-4;
+}
+
+.point-details-topbar {
+  @apply flex justify-between items-center mb-4;
+}
+
+.point-details-topbar p {
+  @apply m-0 text-lg font-bold;
+}
+
+.point-details-topbar button {
+  @apply bg-[#ff3f3f] text-white border-none rounded-[8px] px-0.5 py-0.25 cursor-pointer font-bold w-10 h-10 flex items-center justify-center;
+}
+.point-details-topbar img {
+  @apply w-8 h-8 inline-block;
+}
+
+.point-details .point-entry {
+  @apply mb-4;
+}
+
+.user-section {
+  @apply mb-8 p-4 bg-[#2a2a2a] rounded-xl;
+}
+
+.user-section p {
+  @apply mb-4 text-xl text-[#e0e0e0] font-bold;
+}
+
+.point-entry {
+  @apply bg-[#1e1e1e] p-3 rounded-lg mt-2 text-sm leading-6 text-[#eee] whitespace-pre-wrap break-words;
+}
+
+.point-entry p {
+  @apply mb-2 text-lg text-[#e0e0e0] font-medium;
+}
+
+.point-entry p:first-child {
+  @apply mb-4;
+}
+
+.post-link-title {
+  @apply text-[#4dabf7] break-words text-xl no-underline font-semibold;
+}
+
+.post-link {
+  @apply text-[#4dabf7] break-words no-underline;
+}
+
+
+.chart-dropdown-controls {
+  @apply relative z-10 flex justify-center gap-8 mb-4;
+}
+
+.dropdown-group {
+  @apply relative;
+}
+
+.dropdown-group button {
+  @apply font-extrabold text-lg bg-gray-600 my-1 mb-2 px-3 py-2 border-0 cursor-pointer;
+}
+
+.dropdown-panel {
+  @apply absolute top-14 left-1/2 transform -translate-x-1/2 bg-gray-700 border border-gray-500 p-2 z-20 rounded-2xl flex flex-col shadow-md;
+}
+
+.dropdown-panel button {
+  @apply my-1 px-3 py-1 text-center bg-transparent border-0 cursor-pointer;
+}
+
+.dropdown-panel button.active {
+  @apply font-bold bg-indigo-500;
+}
+
+.date-row {
+  @apply flex items-center gap-2 w-full;
+}
+
+.date-label {
+  @apply w-[50px] text-right p-2;
+}
+
+.date-panel {
+  @apply flex flex-col gap-3 font-semibold items-start;
+}
+
+.date-panel input {
+  @apply w-[280px] p-2 h-10 bg-gray-800 text-white border border-gray-600 rounded;
+}
+
+.react-datepicker__close-icon::after {
+  content: "";
+  background-image: url('../assets/Close Icon.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  @apply block w-6 h-6 bg-transparent mb-2;
 }
