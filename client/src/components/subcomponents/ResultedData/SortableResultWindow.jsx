@@ -54,12 +54,18 @@ export default function SortableResultWindow({ id, title, content, platform, use
   const handleGraphDragEnd = (event) => {
     const { active, over } = event;
     if (!active || !over || active.id === over.id) return;
-    const oldIndex = graphOrder.indexOf(active.id);
-    const newIndex = graphOrder.indexOf(over.id);
+
+    const activeKey = active.id.replace(`${id}-`, '');
+    const overKey = over.id.replace(`${id}-`, '');
+
+    const oldIndex = graphOrder.indexOf(activeKey);
+    const newIndex = graphOrder.indexOf(overKey);
+
     if (oldIndex !== -1 && newIndex !== -1) {
       setGraphOrder(arrayMove(graphOrder, oldIndex, newIndex));
     }
   };
+
 
   const closeGraph = (key) => setHiddenGraphs(prev => [...prev, key]);
   const restoreAllGraphs = () => setHiddenGraphs([]);
@@ -191,7 +197,11 @@ export default function SortableResultWindow({ id, title, content, platform, use
       {!minimized && (
         <div className="window-content">
           <DndContext collisionDetection={closestCenter} onDragEnd={handleGraphDragEnd}>
-            <SortableContext items={graphOrder} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={graphOrder.map(key => `${id}-${key}`)}
+              strategy={verticalListSortingStrategy}
+            >
+
               {graphOrder.map((category) => {
                 const subwindowId = `${id}-${category}`;
                 if (hiddenGraphs.includes(category)) return null;
