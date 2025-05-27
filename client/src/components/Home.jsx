@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import SubmitProfile from './subcomponents/SubmitProfile.jsx';
 import ResultedData from './subcomponents/ResultedWindow.jsx';
 
@@ -124,20 +124,45 @@ export default function Home() {
     }
   };
 
+  /*
   useEffect(() => {
-    // console.log('[M] Current Results Map:', resultsMap);
+    console.log('[M] Current Results Map:', resultsMap);
   }, [resultsMap]);
 
   useEffect(() => {
-    // console.log('[M] Current Association Map:', associationMap);
+    console.log('[M] Current Association Map:', associationMap);
   }, [associationMap]);
+  */
+
+  const removeResult = (idToRemove) => {
+    setResults(prev => prev.filter(r => r.id !== idToRemove));
+
+    setResultsMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[idToRemove];
+      return newMap;
+    });
+
+    setAssociationMap(prev => {
+      const newMap = { ...prev };
+      Object.keys(newMap).forEach(subId => {
+        if (subId.startsWith(`${idToRemove}-`)) {
+          delete newMap[subId];
+        }
+      });
+      return newMap;
+    });
+
+    setGlobalCompareList(prev => prev.filter(cmpId => !cmpId.startsWith(`${idToRemove}-`)));
+  };
+
 
   return (
     <div>
       <SubmitProfile onResult={handleSubmitResult} />
       <ResultedData
         results={results}
-        removeResult={(id) => setResults(prev => prev.filter(r => r.id !== id))}
+        removeResult={removeResult}
         setResults={setResults}
         globalCompareList={globalCompareList}
         setGlobalCompareList={setGlobalCompareList}

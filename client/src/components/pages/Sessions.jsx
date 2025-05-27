@@ -75,21 +75,27 @@ export default function Sessions() {
     CheckSession();
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (detailRef.current && !detailRef.current.contains(event.target)) {
-        setSelectedSession(null);
-      }
-    };
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    const detailEl = detailRef.current;
+    const clickedInsideDetail = detailEl && detailEl.contains(event.target);
+    const clickedOnSessionItem = event.target.closest('.session-item');
 
-    if (selectedSession) {
-      document.addEventListener('mousedown', handleClickOutside);
+    if (!clickedInsideDetail && !clickedOnSessionItem) {
+      setSelectedSession(null);
     }
+  };
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [selectedSession]);
+  if (selectedSession) {
+    document.addEventListener('mousedown', handleClickOutside);
+  }
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, [selectedSession]);
+
+
 
 
   const statusMap = {

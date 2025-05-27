@@ -1,13 +1,11 @@
 import PropTypes from 'prop-types';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FaRegWindowClose, FaExpandArrowsAlt, FaDownload } from 'react-icons/fa';
 import { FaWindowMinimize, FaWindowRestore, FaWindowMaximize } from 'react-icons/fa6';
 import { MdPersonAddAlt1, MdPersonOff } from 'react-icons/md';
-import { toPng, toSvg } from 'html-to-image';
-import download from 'downloadjs';
 import SubWindow from './SubWindow';
 import ChartBlock from './ChartBlock';
 
@@ -23,7 +21,7 @@ export default function SortableResultWindow({ id, title, content, platform, use
   const [seticResult, setSeticResult] = useState(null);
   const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
   const windowRef = useRef();
-
+  const dropdownRef = useRef();
 
   const isWindowInCompareMode = graphOrder.every(key => globalCompareList.includes(`${id}-${key}`));
 
@@ -66,76 +64,48 @@ export default function SortableResultWindow({ id, title, content, platform, use
   const closeGraph = (key) => setHiddenGraphs(prev => [...prev, key]);
   const restoreAllGraphs = () => setHiddenGraphs([]);
 
-  const handleDownloadAll = async (format) => {
-    if (!windowRef.current) return;
-    const nodes = windowRef.current.querySelectorAll('.chart-capture-target');
 
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      const chartBlock = node.closest('.chart-block');
-      const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
-      const { labels = [] } = JSON.parse(dataAttr);
+  const handleDownloadAll = (selection) => {
+    const subwindows = windowRef.current?.querySelectorAll('.graph-subwindow');
 
-      const subwindowTitle = chartBlock?.closest('.graph-subwindow')?.querySelector('.window-title')?.textContent?.trim() || `Graph_${i + 1}`;
-      const titlePart = subwindowTitle.replace(/[^a-zA-Z0-9-]/g, '_');
-      const platformMap = {};
-
-      labels.forEach(label => {
-        const [platform, user] = label.split(':').map(s => s.trim());
-        if (!platform || !user) return;
-        if (!platformMap[platform]) platformMap[platform] = [];
-        platformMap[platform].push(user);
+    subwindows?.forEach((subWin, index) => {
+      const buttons = subWin.querySelectorAll('.window-controls button');
+      const downloadButton = Array.from(buttons).find(btn => {
+        const svg = btn.querySelector('svg');
+        return svg?.closest('button')?.innerHTML.includes('Download') || svg;
       });
 
-      const labelPart = Object.entries(platformMap)
-        .map(([platform, users]) => `[${platform}]-(${users.join('+')})`)
-        .join('&');
-
-      const fileName = `${titlePart}=${labelPart}`;
-
-      const originalStyle = {
-        width: node.style.width,
-        overflow: node.style.overflow
-      };
-
-      node.style.width = 'fit-content';
-      node.style.overflow = 'visible';
-
-      try {
-        if (format === 'png') {
-          const dataUrl = await toPng(node, { pixelRatio: 3 });
-          download(dataUrl, `${fileName}.${format}`);
-        } else if (format === 'svg') {
-          const dataUrl = await toSvg(node);
-          download(dataUrl, `${fileName}.${format}`);
-        } else if (format === 'csv') {
-          const csvData = generateCSVFromChart(chartBlock);
-          const blob = new Blob([csvData], { type: 'text/csv' });
-          download(blob, `${fileName}.${format}`);
-
-        }
-      } catch (err) {
-        console.error(`Failed to download graph ${i + 1}:`, err);
+      if (downloadButton) {
+        downloadButton.click();
       }
 
-      node.style.width = originalStyle.width;
-      node.style.overflow = originalStyle.overflow;
-    }
+      setTimeout(() => {
+        const dropdown = subWin.querySelector('.download-dropdown');
+        if (!dropdown) return;
+
+        const targetBtn = Array.from(dropdown.querySelectorAll('button')).find(
+          btn => btn.textContent.trim().toLowerCase() === selection.trim().toLowerCase()
+        );
+
+        targetBtn?.click();
+      }, 300 + index * 200);
+    });
 
     setShowDownloadDropdown(false);
   };
 
-  const generateCSVFromChart = (chartBlock) => {
-    const dataAttr = chartBlock?.getAttribute('data-chart') || '{}';
-    try {
-      const parsed = JSON.parse(dataAttr);
-      const headers = ['timestamp', ...parsed.labels];
-      const rows = parsed.data.map(row => [row.timestamp, ...parsed.labels.map(l => row[l] || 0)]);
-      return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    } catch {
-      return 'timestamp,value\n';
-    }
-  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDownloadDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
 
   const handleCalculateSETIC = async () => {
     try {
@@ -154,21 +124,13 @@ export default function SortableResultWindow({ id, title, content, platform, use
   };
 
   const renderSETICBar = (label, value) => (
-    <div style={{ marginBottom: '1rem' }}>
-      <div style={{ fontSize: '1rem', marginBottom: '0.3rem' }}>{label}: {value}%</div>
-      <div style={{
-        background: '#333',
-        borderRadius: '8px',
-        overflow: 'hidden',
-        height: '10px',
-        width: '100%'
-      }}>
-        <div style={{
-          height: '100%',
-          width: `${value}%`,
-          backgroundColor: '#4dabf7',
-          transition: 'width 0.5s ease'
-        }} />
+    <div className="setic-bar-wrapper">
+      <div className="setic-bar-label">{label}: {value}%</div>
+      <div className="setic-bar-track">
+        <div
+          className="setic-bar-fill"
+          style={{ width: `${value}%` }}
+        />
       </div>
     </div>
   );
@@ -188,30 +150,42 @@ export default function SortableResultWindow({ id, title, content, platform, use
           <button onClick={() => setShowDownloadDropdown(prev => !prev)}>
             <FaDownload />
           </button>
+          {showDownloadDropdown && (
+            <div className="download-dropdown" ref={dropdownRef}>
+              <button onClick={() => handleDownloadAll('PNG Selection')}>PNG Selection</button>
+              <button onClick={() => handleDownloadAll('PNG Full')}>PNG Full</button>
+              <button onClick={() => handleDownloadAll('SVG Selection')}>SVG Selection</button>
+              <button onClick={() => handleDownloadAll('SVG Full')}>SVG Full</button>
+              <button onClick={() => handleDownloadAll('CSV')}>CSV</button>
+            </div>
+          )}
           <button onClick={handleMainCompareToggle}>
             {isWindowInCompareMode ? <MdPersonOff /> : <MdPersonAddAlt1 />}
           </button>
         </div>
         <span className="window-title" {...listeners}>{title}</span>
         <div className="window-controls">
-          <button onClick={() => setMinimized(prev => !prev)}>
+          <button
+            onClick={() => {
+              if (maximized) setMaximized(false);
+              setMinimized(prev => !prev);
+            }}
+          >
             {minimized ? <FaWindowMaximize /> : <FaWindowMinimize />}
           </button>
-          <button onClick={() => setMaximized(prev => !prev)}>
+          <button
+            onClick={() => {
+              if (minimized) setMinimized(false);
+              setMaximized(prev => !prev);
+            }}
+          >
             {maximized ? <FaWindowRestore /> : <FaExpandArrowsAlt />}
           </button>
+
           <button onClick={onClose}>
             <FaRegWindowClose style={{ fontSize: '2rem', fontWeight: 'bold' }} />
           </button>
         </div>
-        {showDownloadDropdown && (
-          <div className="download-dropdown">
-            <button onClick={() => handleDownloadAll('png')}>Download All as PNG</button>
-            <button onClick={() => handleDownloadAll('svg')}>Download All as SVG</button>
-            <button onClick={() => handleDownloadAll('csv')}>Export All as CSV</button>
-          </div>
-        )}
-
       </div>
 
       {!minimized && (
@@ -236,26 +210,14 @@ export default function SortableResultWindow({ id, title, content, platform, use
                       toggleCompare={toggleSubwindowCompare}
                     >
                       {!seticResult ? (
-                        <div style={{ padding: '1rem', textAlign: 'center' }}>
-                          <button
-                            onClick={handleCalculateSETIC}
-                            style={{
-                              padding: '0.8rem 1.2rem',
-                              fontSize: '1rem',
-                              backgroundColor: '#4dabf7',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontWeight: 'bold'
-                            }}
-                          >
+                        <div className="setic-wrapper">
+                          <button onClick={handleCalculateSETIC}>
                             Calculate SETIC
                           </button>
                         </div>
                       ) : (
-                        <div style={{ padding: '1rem' }}>
-                          <h4 style={{ marginBottom: '1rem', color: '#4dabf7' }}>SETIC Scores</h4>
+                        <div className="setic-result">
+                          <p>- S.E.T.I.C. Scores -</p>
                           {renderSETICBar('Sentiment', seticResult.S)}
                           {renderSETICBar('Engagement', seticResult.E)}
                           {renderSETICBar('Trustworthiness', seticResult.T)}
@@ -305,7 +267,7 @@ export default function SortableResultWindow({ id, title, content, platform, use
           </DndContext>
 
           {hiddenGraphs.length > 0 && (
-            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+            <div className='restore-all-button-wrapper'>
               <button onClick={restoreAllGraphs}>Restore All Graphs</button>
             </div>
           )}

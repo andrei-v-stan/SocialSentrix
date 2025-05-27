@@ -16,7 +16,15 @@ const groupBy = (data, interval, selectedYAxis, category) => {
       case 'minute': key = format(date, 'yyyy-MM-dd HH:mm'); break;
       case 'hour': key = format(date, 'yyyy-MM-dd HH'); break;
       case 'day': key = format(date, 'yyyy-MM-dd'); break;
-      case 'week': key = format(date, 'yyyy-ww'); break;
+      case 'week': {
+        const weekStart = new Date(date);
+        const day = weekStart.getUTCDay();
+        const diff = (day === 0 ? -6 : 1) - day;
+        weekStart.setUTCDate(weekStart.getUTCDate() + diff);
+        weekStart.setUTCHours(0, 0, 0, 0);
+        key = weekStart.toISOString();
+        break;
+      }
       case 'month': key = format(date, 'yyyy-MM'); break;
       case 'year': key = format(date, 'yyyy'); break;
       default: key = format(date, 'yyyy-MM-dd HH:mm');
@@ -150,7 +158,7 @@ export default function ChartBlock({ datasets, category }) {
 
   const handleWheel = (e) => {
     if (!isFocused) return;
-    e.preventDefault();
+    // e.preventDefault();
     const direction = e.deltaY > 0 ? 1 : -1;
     const [start, end] = viewBox;
     const center = (start + end) / 2;
@@ -204,6 +212,37 @@ export default function ChartBlock({ datasets, category }) {
     }
   };
 
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+
+    let formattedLabel = label;
+    if (granularity === 'week') {
+      const date = new Date(label);
+      formattedLabel = `Week ${format(date, 'II')} | ${format(date, 'yyyy')}`;
+    }
+
+    return (
+      <div className="chart-block-point-tooltip">
+        <p>{formattedLabel}</p>
+        {payload.map((entry, idx) => (
+          <div key={idx} className="flex justify-between gap-4" style={{ color: entry.color }}>
+            <span>{entry.name} ({entry.value})</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  CustomTooltip.propTypes = {
+    active: PropTypes.bool,
+    payload: PropTypes.arrayOf(PropTypes.shape({
+      name: PropTypes.string,
+      value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    })),
+    label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  };
+
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -229,7 +268,8 @@ export default function ChartBlock({ datasets, category }) {
         case 'minute':
         case 'hour': return format(date, 'HH:mm:ss | dd/MM/yyyy');
         case 'day': return format(date, 'dd/MM/yyyy');
-        case 'week': return `Week ${format(date, 'II')} | ${format(date, 'yyyy')}`;
+        case 'week':
+          return `Week ${format(date, 'II')} | ${format(date, 'yyyy')}`;
         case 'month': return format(date, 'MM/yyyy');
         case 'year': return format(date, 'yyyy');
         default: return format(date, 'dd/MM/yyyy');
@@ -250,7 +290,9 @@ export default function ChartBlock({ datasets, category }) {
   const chartRef = useRef();
   const chartMeta = {
     labels: datasets.map(d => d.label),
+    data: mergedData,
   };
+
 
 
   return (
@@ -356,7 +398,7 @@ export default function ChartBlock({ datasets, category }) {
         ref={chartContainerRef}
         tabIndex={0}
         className={`chart-interactive-container ${isFocused ? 'focused' : ''}`}
-        style={{ width: '100%', height: '100%', padding: '3rem 3rem 0 0', touchAction: 'none', outline: 'none', border: isFocused ? '2px solid #c4c4c4' : '2px solid transparent' }}
+        style={{ width: '100%', height: '40vh', minHeight: '250px', maxHeight: '600px', padding: '3rem 3rem 0 0', touchAction: 'none', outline: 'none', border: isFocused ? '2px solid #c4c4c4' : '2px solid transparent' }}
         onClick={() => setIsFocused(true)}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
@@ -370,10 +412,22 @@ export default function ChartBlock({ datasets, category }) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="timestamp" tickFormatter={formatXAxis} tick={{ fontSize: 10 }} />
               <YAxis />
-              <Tooltip />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
               {filteredDatasets.map(({ label }, idx) => (
-                <Line key={idx} type="monotone" dataKey={label} stroke={colorForIndex(idx)} dot connectNulls />
+                <Line
+                  key={idx}
+                  type="monotone"
+                  dataKey={label}
+                  stroke={colorForIndex(idx)}
+                  dot={{
+                    fill: colorForIndex(idx),
+                    stroke: 'Lavender',
+                    strokeWidth: 1,
+                    r: 3
+                  }}
+                  connectNulls
+                />
               ))}
             </LineChart>
           </ResponsiveContainer>

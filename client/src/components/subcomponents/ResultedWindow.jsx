@@ -15,7 +15,7 @@ export default function ResultedData({ results, removeResult, setResults, global
       setResults(arrayMove(results, oldIndex, newIndex));
     }
   };
-
+  
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={results.map(r => r.id)} strategy={verticalListSortingStrategy}>
