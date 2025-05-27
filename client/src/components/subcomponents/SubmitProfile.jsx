@@ -291,8 +291,11 @@ export default function SubmitProfile({ onResult }) {
             )}
 
             {!token && platform && (
-              <Button type="button" onClick={handleSignIn} className="submit-signin-button">
-                Sign into {platform}
+              <Button
+                type="button"
+                onClick={handleSignIn}
+                className={`submit-signin-button platform-${platform.toLowerCase()}-btn`}
+              >
               </Button>
             )}
 
@@ -302,9 +305,7 @@ export default function SubmitProfile({ onResult }) {
               className="submit-profile-button"
             >
               {isSubmitting ? <span className="loading-spinner"></span> : 'Submit Profile'}
-
             </Button>
-
           </form>
 
           {error && <p className="submit-profile-error">{error}</p>}
