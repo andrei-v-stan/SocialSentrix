@@ -53,14 +53,15 @@ export default function SubmitProfile({ onResult }) {
           }
 
           onResult?.({
-            title: `${data.platform}: ${data.username}`,
-            content: {
-              posts: data.posts,
-              comments: data.comments,
-              upvotes: data.upvotes || [],
-              downvotes: data.downvotes || [],
-            },
-          });
+  title: `${data.platform}: ${data.username}`,
+  content: {
+    posts: data.posts,
+    comments: data.comments,
+    upvotes: data.upvotes || data.likes || [],
+    downvotes: data.downvotes || [],
+  },
+});
+
         }
       }));
     } catch (err) {
@@ -111,8 +112,8 @@ export default function SubmitProfile({ onResult }) {
         body: JSON.stringify({ username: blueskyUsername, password: blueskyPassword })
       });
       const data = await res.json();
-      if (data.token) {
-        setToken(data.token);
+
+      if (data.success) {
         alert(`Logged in as ${data.handle}`);
       } else {
         setError(data.error || 'Login failed.');
@@ -284,13 +285,16 @@ export default function SubmitProfile({ onResult }) {
                   />
                 </div>
 
-                <Button type="button" onClick={handleBlueskyLogin} className="submit-signin-button">
-                  Login to Bluesky
+                <Button
+                  type="button"
+                  onClick={handleBlueskyLogin}
+                  className="submit-signin-button platform-bluesky-btn"
+                >
                 </Button>
               </>
             )}
 
-            {!token && platform && (
+            {!token && platform && platform !== 'Bluesky' && (
               <Button
                 type="button"
                 onClick={handleSignIn}

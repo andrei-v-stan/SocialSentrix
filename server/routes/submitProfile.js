@@ -18,6 +18,13 @@ const safeFetch = async (url) => {
   }
 };
 
+const fetchDb = async (platform, username) => {
+  const db = getDb();
+  const profile = await db.collection(dbProfiles).findOne({ platform, username });
+  return !!profile;
+};
+
+
 function extractUsername(platform, input) {
   switch (platform.toLowerCase()) {
     case 'reddit': {
@@ -35,13 +42,12 @@ function extractUsername(platform, input) {
     }
 
     case 'bluesky': {
-      const urlMatch = input.match(/^https?:\/\/(www\.)?bsky\.app\/profile\/([a-zA-Z0-9.-]+)$/);
+      const trimmedInput = input.trim().replace(/\u200E|\u200F/g, '');
+      const urlMatch = trimmedInput.match(/^https?:\/\/(www\.)?bsky\.app\/profile\/([a-zA-Z0-9.-]+)$/);
       if (urlMatch) return urlMatch[2].toLowerCase();
-      const clean = input.replace(/^@/, '').toLowerCase();
-      if (clean.includes('.')) {
-        return clean;
-      }
-      return `${clean}.bsky.social`;
+
+      const clean = trimmedInput.replace(/^@/, '').toLowerCase();
+      return clean.includes('.') ? clean : `${clean}.bsky.social`;
     }
 
     case 'x': {
@@ -62,25 +68,19 @@ function extractUsername(platform, input) {
   }
 }
 
+
 async function checkRedditUserExistsOrCached(username) {
   const exists = await safeFetch(`https://www.reddit.com/user/${username}/about.json`);
   if (exists && exists.data) return true;
-
-  const db = getDb();
-  const profilesCol = db.collection(dbProfiles);
-  const cached = await profilesCol.findOne({ platform: 'reddit', username });
-  return !!cached;
+  return await fetchDb('reddit', username);
 }
 
 async function checkBlueskyUserExistsOrCached(username) {
-  const exists = await safeFetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${username}`);
-  if (exists && !exists.error) return true;
-
-  const db = getDb();
-  const profilesCol = db.collection(dbProfiles);
-  const cached = await profilesCol.findOne({ platform: 'bluesky', username });
-  return !!cached;
+  const exists = await safeFetch(`https://public.api.bsky.app/xrpc/app.bsky.actor.getProfiles?actors=${username}`);
+  if (exists?.profiles?.length) return true;
+  return await fetchDb('bluesky', username);
 }
+
 
 router.post('/', async (req, res) => {
   const { platform, input } = req.body;

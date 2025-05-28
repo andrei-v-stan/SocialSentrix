@@ -8,6 +8,23 @@ export default function Home() {
   const [resultsMap, setResultsMap] = useState({});
   const [associationMap, setAssociationMap] = useState({});
 
+
+  const CATEGORY_ALIAS_MAP = {
+    posts: ['posts'],
+    comments: ['comments'],
+    upvotes: ['upvotes', 'likes'],
+    downvotes: ['downvotes', 'dislikes'],
+  };
+
+  const normalizeCategory = (rawCategory) => {
+    for (const [canonical, aliases] of Object.entries(CATEGORY_ALIAS_MAP)) {
+      if (aliases.includes(rawCategory)) return canonical;
+    }
+    return rawCategory;
+  };
+
+
+
   const handleSubmitResult = (r) => {
     const windowId = `${Date.now()}`;
     const [platform, username] = r.title.split(':').map(x => x.trim());
@@ -15,14 +32,18 @@ export default function Home() {
     if (globalCompareList.length > 0) {
       // console.log('Compare mode active: Associating new data to existing compare graphs.');
       const newAssociations = {};
-      Object.entries(r.content || {}).forEach(([category, dataArray]) => {
+      Object.entries(r.content || {}).forEach(([rawCategory, dataArray]) => {
         if (Array.isArray(dataArray) && dataArray.length > 0) {
-          const matchingSubwindows = globalCompareList.filter(subId => subId.endsWith(`-${category}`));
+          const canonicalCategory = normalizeCategory(rawCategory);
+          const matchingSubwindows = globalCompareList.filter(subId => {
+            const [, subCategory] = subId.split('-').slice(-2);
+            return normalizeCategory(subCategory) === canonicalCategory;
+          });
           // console.log('Matching subwindows for:', category, ':', matchingSubwindows);
           matchingSubwindows.forEach(subwindowId => {
             const currentAssoc = associationMap[subwindowId] || {};
             const alreadyExists = Object.values(currentAssoc).some(
-              assoc => assoc.platform === platform && assoc.username === username && assoc.category === category
+              assoc => assoc.platform === platform && assoc.username === username && assoc.category === canonicalCategory
             );
 
             if (!alreadyExists) {
@@ -31,7 +52,7 @@ export default function Home() {
                 [Object.keys(currentAssoc).length]: {
                   platform,
                   username,
-                  category,
+                  category: canonicalCategory,
                 }
               };
             }

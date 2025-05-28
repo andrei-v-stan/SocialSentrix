@@ -1,9 +1,8 @@
 const fetch = require('node-fetch');
+const { getDb, dbAccounts } = require('../../services/mongo');
 
 exports.authBlueskyProfile = async (req, res) => {
   const { username, password } = req.body;
-  console.log('Bluesky login attempt:', username);
-  console.log('Bluesky login attempt:', password);
 
   try {
     const response = await fetch('https://bsky.social/xrpc/com.atproto.server.createSession', {
@@ -14,15 +13,60 @@ exports.authBlueskyProfile = async (req, res) => {
 
     const data = await response.json();
 
-    if (data.accessJwt) {
-      res.json({ token: data.accessJwt, handle: data.handle });
-      console.log('Bluesky login successful:', data.handle, data.accessJwt);
-    } else {
-      res.status(401).json({ error: 'Invalid credentials or API error.' });
+    if (!data.accessJwt || !data.handle || !data.did || !data.refreshJwt) {
+      return res.status(401).json({ error: 'Invalid credentials or API error.' });
     }
+
+    const { accessJwt, refreshJwt, handle, did } = data;
+    const normalizedHandle = handle.toLowerCase();
+
+    const userID = req.cookies.userID;
+    if (userID) {
+      const db = getDb();
+      const accounts = db.collection(dbAccounts);
+
+      const userAccount = await accounts.findOne({ id: userID });
+      if (userAccount) {
+        const ownedProfileIndex = userAccount.ownedProfiles?.findIndex(
+          (p) => p.platform === 'bluesky' && p.user === normalizedHandle
+        );
+
+        if (ownedProfileIndex === -1 || ownedProfileIndex === undefined) {
+          await accounts.updateOne(
+            { id: userID },
+            {
+              $push: {
+                ownedProfiles: {
+                  platform: 'bluesky',
+                  user: normalizedHandle,
+                  did: did,
+                  token: accessJwt,
+                  refresh: refreshJwt
+                }
+              }
+            }
+          );
+        } else {
+          await accounts.updateOne(
+            { id: userID },
+            {
+              $set: {
+                [`ownedProfiles.${ownedProfileIndex}.did`]: did,
+                [`ownedProfiles.${ownedProfileIndex}.token`]: accessJwt,
+                [`ownedProfiles.${ownedProfileIndex}.refresh`]: refreshJwt
+              }
+            }
+          );
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      handle: normalizedHandle
+    });
   } catch (err) {
-    console.error('Bluesky login error:', err);
+    console.error('❌ Bluesky login error:', err);
     res.status(500).json({ error: 'Failed to authenticate with Bluesky.' });
   }
 };
-
