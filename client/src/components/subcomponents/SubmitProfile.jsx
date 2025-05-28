@@ -15,12 +15,15 @@ export default function SubmitProfile({ onResult }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [blueskyUsername, setBlueskyUsername] = useState('');
   const [blueskyPassword, setBlueskyPassword] = useState('');
+  const [twitterUsername, setTwitterUsername] = useState('');
+  const [twitterPassword, setTwitterPassword] = useState('');
 
   const inputRef = useRef();
 
   const platformPlaceholders = {
-    Reddit: 'username | u/username | <username link>',
-    Bluesky: '@example.bsky.social'
+    Reddit: '(u/)username | reddit.com/u/username',
+    Bluesky: '(@)username.domain | bsky.app/profile/username.domain',
+    Twitter: '(@)username | x.com/username/'
   };
 
   const handleSubmit = useCallback(async (e) => {
@@ -125,6 +128,31 @@ export default function SubmitProfile({ onResult }) {
     }
   };
 
+  const handleTwitterLogin = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/twitter/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          username: twitterUsername,
+          password: twitterPassword
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert(`Logged in as ${data.handle}`);
+      } else {
+        setError(data.error || 'Twitter login failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Could not login to Twitter.');
+    }
+  };
+
+
   const handleInputFocus = async () => {
     const userID = Cookies.get('userID');
     if (!userID || !platform) return;
@@ -221,9 +249,7 @@ export default function SubmitProfile({ onResult }) {
                 <SelectContent className="submit-profile-platform-dropdown">
                   <SelectItem className="submit-profile-platform-dropdown-item" value="Reddit">Reddit</SelectItem>
                   <SelectItem className="submit-profile-platform-dropdown-item" value="Bluesky">Bluesky</SelectItem>
-                  <SelectItem className="submit-profile-platform-dropdown-item" value="X" disabled>X</SelectItem>
-                  <SelectItem className="submit-profile-platform-dropdown-item" value="Facebook" disabled>Facebook</SelectItem>
-                  <SelectItem className="submit-profile-platform-dropdown-item" value="Instagram" disabled>Instagram</SelectItem>
+                  <SelectItem className="submit-profile-platform-dropdown-item" value="Twitter" disabled>X</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -295,7 +321,43 @@ export default function SubmitProfile({ onResult }) {
               </>
             )}
 
-            {!token && platform && platform !== 'Bluesky' && (
+            {platform === 'Twitter' && !token && (
+              <>
+                <div className="submit-profile-field">
+                  <Label htmlFor="twitter-username" className="submit-profile-label">Twitter Username</Label>
+                  <Input
+                    id="twitter-username"
+                    type="text"
+                    className="submit-profile-input"
+                    value={twitterUsername}
+                    onChange={(e) => setTwitterUsername(e.target.value)}
+                    placeholder="e.g., yourhandle"
+                  />
+                </div>
+
+                <div className="submit-profile-field">
+                  <Label htmlFor="twitter-password" className="submit-profile-label">Password</Label>
+                  <Input
+                    id="twitter-password"
+                    type="password"
+                    className="submit-profile-input"
+                    value={twitterPassword}
+                    onChange={(e) => setTwitterPassword(e.target.value)}
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={handleTwitterLogin}
+                  className="submit-signin-button platform-twitter-btn"
+                >
+                </Button>
+              </>
+            )}
+
+
+            {!token && platform && platform !== 'Bluesky' && platform !== 'Twitter' && (
               <Button
                 type="button"
                 onClick={handleSignIn}

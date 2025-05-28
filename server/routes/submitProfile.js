@@ -2,6 +2,10 @@ const express = require('express');
 const { getDb, dbProfiles } = require('../services/mongo');
 const redditProfile = require('../controllers/reddit/redditProfile.js');
 const blueskyProfile = require('../controllers/bluesky/blueskyProfile.js');
+const twitterProfile = require('../controllers/twitter/twitterProfile.js');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const router = express.Router();
 
 const safeFetch = async (url) => {
@@ -50,17 +54,16 @@ function extractUsername(platform, input) {
       return clean.includes('.') ? clean : `${clean}.bsky.social`;
     }
 
-    case 'x': {
-      const username = input.startsWith('@') ? input.slice(1) : input;
-      return /^[a-zA-Z0-9_]{1,15}$/.test(username) ? username : null;
-    }
+    case 'twitter': {
+      const trimmedInput = input.trim();
+      const urlMatch = trimmedInput.match(/^https?:\/\/(www\.)?x\.com\/([a-zA-Z0-9_]{1,15})\/?$/);
+      if (urlMatch) return urlMatch[2];
 
-    case 'instagram':
-      return /^[a-zA-Z0-9._]{1,30}$/.test(input) ? input : null;
+      const handleMatch = trimmedInput.match(/^@([a-zA-Z0-9_]{1,15})$/);
+      if (handleMatch) return handleMatch[1];
 
-    case 'facebook': {
-      const fbMatch = input.match(/^https?:\/\/(www\.)?facebook\.com\/([a-zA-Z0-9.]+)\/?$/);
-      return fbMatch ? fbMatch[2] : null;
+      if (/^[a-zA-Z0-9_]{1,15}$/.test(trimmedInput)) return trimmedInput;
+      return null;
     }
 
     default:
@@ -80,6 +83,50 @@ async function checkBlueskyUserExistsOrCached(username) {
   if (exists?.profiles?.length) return true;
   return await fetchDb('bluesky', username);
 }
+const fs = require('fs');
+const path = require('path');
+
+async function checkTwitterUserExistsOrCached(username) {
+  const profileUrl = `https://x.com/${username}`;
+  let browser;
+
+  try {
+    browser = await puppeteer.launch({
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
+    console.log(profileUrl)
+    const response = await page.goto(profileUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
+
+    const pageContent = await page.content();
+    const notFound = pageContent.includes('This account doesn’t exist') ||
+      pageContent.includes("This account doesn't exist") ||
+      pageContent.includes('Try searching for another');
+    const savePath = path.join(__dirname, `twitter-${username}.html`);
+    fs.writeFileSync(savePath, pageContent, 'utf8');
+    console.log(`Saved HTML for ${username} to ${savePath}`);
+    if (notFound) {
+      console.log('Twitter profile not found:', username);
+      return await fetchDb('twitter', username);
+    }
+
+
+    return true;
+  } catch (err) {
+    console.warn(`Twitter profile check failed for '${username}':`, err.message);
+    return await fetchDb('twitter', username);
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+
 
 
 router.post('/', async (req, res) => {
@@ -114,6 +161,15 @@ router.post('/', async (req, res) => {
         }
         req.body.username = normalizedUsername;
         return await blueskyProfile.getBlueskyProfile(req, res);
+      }
+
+      case 'twitter': {
+        const exists = await checkTwitterUserExistsOrCached(normalizedUsername);
+        if (!exists) {
+          return res.status(404).json({ error: `Twitter user '${normalizedUsername}' not found.` });
+        }
+        req.body.username = normalizedUsername;
+        return await twitterProfile.getTwitterProfile(req, res);
       }
 
       default:

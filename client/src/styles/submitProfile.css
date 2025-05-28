@@ -77,6 +77,13 @@
   background-size: cover;
 }
 
+.platform-twitter-btn {
+  background: linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0.2)), url('../assets/twitter-bg.jpg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 
 
 .submit-profile-error {
