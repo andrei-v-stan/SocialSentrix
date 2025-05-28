@@ -14,7 +14,9 @@ export default function Home() {
     comments: ['comments'],
     upvotes: ['upvotes', 'likes'],
     downvotes: ['downvotes', 'dislikes'],
+    reposts: ['reposts']
   };
+
 
   const normalizeCategory = (rawCategory) => {
     for (const [canonical, aliases] of Object.entries(CATEGORY_ALIAS_MAP)) {

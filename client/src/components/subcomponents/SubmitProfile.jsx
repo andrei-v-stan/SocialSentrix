@@ -53,14 +53,15 @@ export default function SubmitProfile({ onResult }) {
           }
 
           onResult?.({
-  title: `${data.platform}: ${data.username}`,
-  content: {
-    posts: data.posts,
-    comments: data.comments,
-    upvotes: data.upvotes || data.likes || [],
-    downvotes: data.downvotes || [],
-  },
-});
+            title: `${data.platform}: ${data.username}`,
+            content: {
+              posts: data.posts,
+              comments: data.comments,
+              upvotes: data.upvotes || data.likes || [],
+              downvotes: data.downvotes || [],
+              reposts: data.reposts || [],
+            },
+          });
 
         }
       }));

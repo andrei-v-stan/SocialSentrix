@@ -38,22 +38,26 @@ const groupBy = (data, interval, selectedYAxis, category) => {
       if (selectedYAxis === 'posts') {
         group.sum += 1;
       } else if (selectedYAxis === 'comments') {
-        group.sum += item.comments || 0;
+        group.sum += item.comments ?? item.replyCount ?? 0;
       } else if (selectedYAxis === 'upvotes') {
-        group.sum += item.upvotes || 0;
+        group.sum += item.upvotes ?? item.likeCount ?? 0;
+      } else if (selectedYAxis === 'reposts') {
+        group.sum += item.repostCount ?? 0;
       }
       group.posts.push(item);
+
     } else if (category === 'comments') {
       if (selectedYAxis === 'comments') {
         group.sum += 1;
       } else if (selectedYAxis === 'upvotes') {
-        group.sum += item.upvotes || 0;
+        group.sum += item.upvotes ?? item.likeCount ?? 0;
       }
       group.posts.push(item);
-    } else if (category === 'upvotes' || category === 'downvotes') {
+    } else if (category === 'upvotes' || category === 'downvotes' || category === 'reposts') {
       group.sum += 1;
       group.posts.push(item);
     }
+
   });
 
   return Array.from(grouped.entries())
@@ -82,17 +86,28 @@ export default function ChartBlock({ datasets, category }) {
   const [isFocused, setIsFocused] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [visibleCountMap, setVisibleCountMap] = useState({});
   const chartContainerRef = useRef();
   const xAxisRef = useRef(null);
   const yAxisRef = useRef(null);
   const dateRef = useRef(null);
 
+  const labelMap = {
+    posts: 'Posts',
+    comments: 'Comments',
+    upvotes: 'Upvotes',
+    downvotes: 'Downvotes',
+    reposts: 'Reposts'
+  };
 
   const availableYAxisOptions = (() => {
-    if (category === 'posts') return ['posts', 'comments', 'upvotes'];
+    if (category === 'posts') return ['posts', 'comments', 'upvotes', 'reposts'];
     if (category === 'comments') return ['comments', 'upvotes'];
+    if (category === 'upvotes') return ['upvotes'];
+    if (category === 'reposts') return ['reposts'];
     return [];
   })();
+
 
   useEffect(() => {
     if (isFocused) {
@@ -191,6 +206,17 @@ export default function ChartBlock({ datasets, category }) {
     setDragStart(null);
     document.body.style.userSelect = '';
   };
+
+  useEffect(() => {
+    if (selectedPoint) {
+      const counts = {};
+      for (const label in selectedPoint.groupedItems) {
+        counts[label] = 10;
+      }
+      setVisibleCountMap(counts);
+    }
+  }, [selectedPoint]);
+
 
   const handleChartClick = (e) => {
     if (!isFocused || isDragging) return;
@@ -299,19 +325,20 @@ export default function ChartBlock({ datasets, category }) {
     <div className="chart-block" data-chart={JSON.stringify(chartMeta)}>
       <div className="chart-dropdown-controls">
 
-        {availableYAxisOptions.length > 0 && (
+        {availableYAxisOptions.length > 1 && (
           <div className="dropdown-group" ref={yAxisRef}>
             <button onClick={() => setOpenDropdown(openDropdown === 'y' ? null : 'y')}>Y-Axis</button>
-            <div style={{ textAlign: 'center' }}>{selectedYAxis}</div>
+            <div style={{ textAlign: 'center' }}>{labelMap[selectedYAxis] || selectedYAxis}</div>
             {openDropdown === 'y' && (
               <div className="dropdown-panel">
                 {availableYAxisOptions.map(option => (
-                  <button key={option} onClick={() => { setSelectedYAxis(option); setOpenDropdown(null); }} className={selectedYAxis === option ? 'active' : ''}>{option}</button>
+                  <button key={option} onClick={() => { setSelectedYAxis(option); setOpenDropdown(null); }} className={selectedYAxis === option ? 'active' : ''}>{labelMap[option] || option}</button>
                 ))}
               </div>
             )}
           </div>
         )}
+
 
         <div className="dropdown-group" ref={xAxisRef}>
           <button onClick={() => setOpenDropdown(openDropdown === 'x' ? null : 'x')}>X-Axis</button>
@@ -445,48 +472,84 @@ export default function ChartBlock({ datasets, category }) {
             <p>Data for {selectedPoint.timestamp}</p>
             <button onClick={() => setSelectedPoint(null)}>X</button>
           </div>
-          {Object.entries(selectedPoint.groupedItems).map(([label, items]) => (
-            <div key={label} className="user-section">
-              <p>--- {label} ---</p>
-              {items.map((item, idx) => {
-                const post = item.raw || item;
-                return (
-                  <div key={idx} className="point-entry">
-                    <p>
-                      {post.permalink && (
-                        <a
-                          href={`https://reddit.com${post.permalink}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="post-link-title"
-                        >
-                          {post.title || post.text || 'Untitled'}
-                        </a>
-                      )}
-                    </p>
-                    <p>Upvotes: {post.upvotes ?? 0}</p>
-                    <p>Comments: {post.comments ?? 0}</p>
-                    {post.subreddit ? (
-                      <p>
-                        Subreddit:{' '}
-                        <a
-                          href={`https://www.reddit.com/r/${post.subreddit}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="post-link"
-                        >
-                          r/{post.subreddit}
-                        </a>
-                      </p>
-                    ) : (
-                      <p>Subreddit: Unknown</p>
-                    )}
-                    <p>Created At: {post.createdAt ? new Date(post.createdAt).toLocaleString() : 'N/A'}</p>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+          {Object.entries(selectedPoint.groupedItems).map(([label, items]) => {
+            const visibleCount = visibleCountMap[label] || 10;
+            const visibleItems = items.slice(0, visibleCount);
+
+            const handleScroll = (e) => {
+              const target = e.target;
+              if (target.scrollTop + target.clientHeight >= target.scrollHeight - 20) {
+                setVisibleCountMap(prev => ({
+                  ...prev,
+                  [label]: prev[label] + 10
+                }));
+              }
+            };
+
+            return (
+              <div key={label} className="user-section">
+                <p>--- {label} ---</p>
+                <div
+                  className="point-entry-list"
+                  style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: '8px' }}
+                  onScroll={handleScroll}
+                >
+                  {visibleItems.map((item, idx) => {
+                    const post = item.raw || item;
+                    const isReddit = !!post.permalink;
+                    const isBluesky = !!post.uri;
+                    const title = post.title || post.text || 'Untitled';
+
+                    const postUrl = isReddit
+                      ? `https://reddit.com${post.permalink}`
+                      : isBluesky
+                        ? `https://bsky.app/profile/${post.author?.handle || post.uri?.split('/')[2]}/post/${post.uri?.split('/').pop()}`
+                        : null;
+
+                    return (
+                      <div key={idx} className="point-entry">
+                        <p>
+                          {postUrl ? (
+                            <a
+                              href={postUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="post-link-title"
+                            >
+                              {title}
+                            </a>
+                          ) : (
+                            title
+                          )}
+                        </p>
+                        <p>Upvotes / Likes: {post.upvotes ?? post.likeCount ?? 0}</p>
+                        <p>Comments / Replies: {post.comments ?? post.replyCount ?? 0}</p>
+                        {isReddit && post.subreddit && (
+                          <p>
+                            Subreddit:{' '}
+                            <a
+                              href={`https://www.reddit.com/r/${post.subreddit}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="post-link"
+                            >
+                              r/{post.subreddit}
+                            </a>
+                          </p>
+                        )}
+                        {isBluesky && post.author?.handle && <p>Author: {post.author.handle}</p>}
+                        <p>Created At: {post.createdAt ? new Date(post.createdAt).toLocaleString() : 'N/A'}</p>
+                      </div>
+                    );
+                  })}
+                  {visibleItems.length < items.length && (
+                    <p className="loading-more-indicator">Scroll to load more...</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
         </div>
       )}
     </div>
