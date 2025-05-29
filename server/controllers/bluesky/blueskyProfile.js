@@ -141,15 +141,6 @@ exports.getBlueskyProfile = async (req, res) => {
       p.reason?.$type === 'app.bsky.feed.defs#reasonRepost'
     );
 
-    console.log('🚀 Final output counts:', {
-      posts: posts.length,
-      comments: comments.length,
-      reposts: reposts.length,
-      likes: rawLikes.length,
-      follows: followingCount,
-      followers: followerCount
-    });
-
     const parseFeed = items => items.map(p => ({
       text: p.post?.record?.text || '',
       uri: p.post?.uri,

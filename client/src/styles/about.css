@@ -1,0 +1,45 @@
+@reference "@/index.css";
+
+.about-container {
+  @apply px-6 py-12 max-w-5xl mx-auto leading-relaxed font-sans;
+}
+
+.about-header {
+  @apply mb-10 pb-6 border-b border-gray-300;
+}
+
+.about-header h6 {
+  @apply mb-10 text-xl;
+}
+
+.about-header p {
+  @apply text-xl;
+}
+
+.about-title {
+  @apply text-3xl font-bold mb-3;
+}
+
+.about-section {
+  @apply mb-12;
+}
+
+.section-title {
+  @apply text-3xl font-bold border-gray-400 pb-2 mb-4;
+}
+
+.about-image {
+  @apply w-full rounded-lg shadow-md hover:shadow-xl transition duration-300 cursor-pointer;
+}
+
+.image-caption {
+  @apply text-center mt-2 italic text-lg font-bold;
+}
+
+.image-section {
+  @apply gap-5;
+}
+
+.image-section figure {
+    @apply border-t border-gray-300 py-6;
+}

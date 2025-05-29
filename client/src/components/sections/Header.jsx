@@ -137,7 +137,7 @@ export default function Header() {
 
         <div className="header-right">
           <button className="icon-button" onClick={togglePopup}>
-            {isLoggedIn ? <BiSolidUserRectangle size={24} /> : <TbUserQuestion size={26} />}
+            {isLoggedIn ? <BiSolidUserRectangle size={30} /> : <TbUserQuestion size={30} />}
           </button>
         </div>
       </div>
