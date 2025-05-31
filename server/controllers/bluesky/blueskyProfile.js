@@ -80,6 +80,10 @@ exports.getBlueskyProfile = async (req, res) => {
           console.warn('⚠️ Failed to resume session:', err.message);
           tokenInvalid = true;
           ownerMode = false;
+          await agent.login({
+            identifier: 'socialsentrix@gmail.com',
+            password: 'SocialF!!'
+          });
         }
       } else {
         await agent.login({
@@ -165,7 +169,9 @@ exports.getBlueskyProfile = async (req, res) => {
       reposts: parsedReposts
     };
 
-    const ownerView = ownerMode ? { likes: parsedLikes } : undefined;
+    const ownerView = ownerMode ? {
+      likes: parsedLikes
+    } : undefined;
 
     const updateDoc = { $set: { platform, username } };
     if (guestView) buildMeaningfulUpdate('guestView', guestView, updateDoc);
@@ -197,6 +203,7 @@ exports.getBlueskyProfile = async (req, res) => {
         likes: savedProfile.ownerView.likes || []
       })
     });
+
   } catch (err) {
     console.error('❌ Uncaught error in getBlueskyProfile:', err);
     return res.status(500).json({ error: 'Failed to retrieve Bluesky profile data' });
