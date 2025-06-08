@@ -13,9 +13,13 @@ async function main() {
   app.use(cookieParser());
   app.use(express.json());
 
-  require('./routes/frontendAccess').setupDevCors(app);
-  app.use(require('./routes/routing.js'));
-  require('./routes/frontendAccess').serveFrontend(app);
+  app.use('/api', require('./routes/routing.js'));
+
+  if (process.env.NODE_ENV === 'development') {
+    require('./routes/frontendAccess').setupDevCors(app);
+  } else {
+    require('./routes/frontendAccess').serveFrontend(app);
+  }
 
   startScheduledCleanup();
 
