@@ -5,7 +5,10 @@ const blueskyAuth = require('../controllers/bluesky/blueskyAuth');
 const blueskySETIC = require('../controllers/bluesky/blueskySETIC');
 
 router.post('/profile', blueskyProfile.getBlueskyProfile);
-router.post('/login', blueskyAuth.authBlueskyProfile);
-//router.get('/calculate-setic', blueskySETIC.getSETIC);
+router.post('/auth', blueskyAuth.authBlueskyProfile);
+router.get('/setic', blueskySETIC.getBlueskySETIC);
+router.get('*', (req, res) => {
+  return res.status(404).json({ error: 'Path not recognized for Reddit (/profile | /auth | /setic)' });
+});
 
 module.exports = router;

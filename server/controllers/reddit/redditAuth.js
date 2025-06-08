@@ -34,7 +34,13 @@ exports.startRedditAuth = (req, res) => {
     scope: 'identity history read'
   });
 
-  res.redirect(`https://www.reddit.com/api/v1/authorize?${params}`);
+  const fullURL = `https://www.reddit.com/api/v1/authorize?${params}`;
+
+  if (req.headers.accept?.includes('application/json')) {
+    return res.json({ url: fullURL });
+  } else {
+    return res.redirect(fullURL);
+  }
 };
 
 exports.handleRedditCallback = async (req, res) => {

@@ -36,7 +36,15 @@ exports.authTwitterProfile = async (req, res) => {
       return res.status(401).json({ error: 'Login failed or session cookies not found.' });
     }
 
-    const normalizedUsername = username.toLowerCase();
+  await page.waitForSelector('a[aria-label="Profile"][href^="/"]', { timeout: 10000 });
+
+  const profileHref = await page.$eval('a[aria-label="Profile"][href^="/"]', el => el.getAttribute('href'));
+  const normalizedUsername = profileHref?.split('/')?.[1]?.toLowerCase();
+
+  if (!normalizedUsername) {
+    return res.status(500).json({ error: 'Failed to extract Twitter handle from profile element.' });
+  }
+
     const userID = req.cookies.userID;
 
     if (userID) {

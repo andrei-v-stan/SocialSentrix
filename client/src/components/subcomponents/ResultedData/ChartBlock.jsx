@@ -363,6 +363,7 @@ export default function ChartBlock({ datasets, category }) {
               <div className="date-row">
                 <label className="date-label">Start</label>
                 <DatePicker
+                  portalId="datepicker-portal"
                   selected={dateRange[0]}
                   onChange={(date) => setDateRange([date ?? minDate, dateRange[1]])}
                   selectsStart
@@ -391,6 +392,7 @@ export default function ChartBlock({ datasets, category }) {
               <div className="date-row">
                 <label className="date-label">End</label>
                 <DatePicker
+                  portalId="datepicker-portal"
                   selected={dateRange[1]}
                   onChange={(date) => setDateRange([dateRange[0], date ?? maxDate])}
                   selectsEnd

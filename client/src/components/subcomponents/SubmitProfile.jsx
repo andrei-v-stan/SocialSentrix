@@ -5,6 +5,7 @@ import { Input, Button, Label, Card, CardHeader, CardTitle, CardContent, Select,
 import '@/styles/submitProfile.css';
 
 export default function SubmitProfile({ onResult }) {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [input, setInput] = useState('');
   const [platform, setPlatform] = useState('');
   const [token, setToken] = useState('');
@@ -19,6 +20,12 @@ export default function SubmitProfile({ onResult }) {
   const [twitterPassword, setTwitterPassword] = useState('');
 
   const inputRef = useRef();
+
+  useEffect(() => {
+    const userID = Cookies.get('userID');
+    const sessionID = Cookies.get('sessionID');
+    setIsLoggedIn(!!userID && !!sessionID);
+  }, []);
 
   const platformPlaceholders = {
     Reddit: '(u/)username | reddit.com/u/username',
@@ -109,7 +116,7 @@ export default function SubmitProfile({ onResult }) {
 
   const handleBlueskyLogin = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bluesky/login`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bluesky/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -130,7 +137,7 @@ export default function SubmitProfile({ onResult }) {
 
   const handleTwitterLogin = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/twitter/login`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/twitter/auth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -249,7 +256,7 @@ export default function SubmitProfile({ onResult }) {
                 <SelectContent className="submit-profile-platform-dropdown">
                   <SelectItem className="submit-profile-platform-dropdown-item" value="Reddit">Reddit</SelectItem>
                   <SelectItem className="submit-profile-platform-dropdown-item" value="Bluesky">Bluesky</SelectItem>
-                  <SelectItem className="submit-profile-platform-dropdown-item" value="Twitter" disabled>X</SelectItem>
+                  <SelectItem className="submit-profile-platform-dropdown-item" value="Twitter" disabled>X (Twitter)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -286,7 +293,7 @@ export default function SubmitProfile({ onResult }) {
               </div>
             )}
 
-            {platform === 'Bluesky' && !token && (
+            {platform === 'Bluesky' && !token && isLoggedIn && (
               <>
                 <div className="submit-profile-field">
                   <Label htmlFor="bluesky-username" className="submit-profile-label">Bluesky Username</Label>
@@ -321,7 +328,7 @@ export default function SubmitProfile({ onResult }) {
               </>
             )}
 
-            {platform === 'Twitter' && !token && (
+            {platform === 'Twitter' && !token && isLoggedIn && (
               <>
                 <div className="submit-profile-field">
                   <Label htmlFor="twitter-username" className="submit-profile-label">Twitter Username</Label>
@@ -357,7 +364,7 @@ export default function SubmitProfile({ onResult }) {
             )}
 
 
-            {!token && platform && platform !== 'Bluesky' && platform !== 'Twitter' && (
+            {!token && platform && platform !== 'Bluesky' && platform !== 'Twitter' && isLoggedIn && (
               <Button
                 type="button"
                 onClick={handleSignIn}

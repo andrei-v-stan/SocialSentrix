@@ -190,3 +190,20 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+#datepicker-portal,
+.react-datepicker-popper {
+  @apply !z-9999 absolute;
+}
+
+.react-datepicker {
+  @apply grid grid-cols-[auto_auto] min-w-[337px] max-w-full font-bold;
+}
+
+.react-datepicker__month-container {
+  @apply w-[250px];
+}
+
+.react-datepicker__time {
+  @apply h-auto overflow-y-auto overflow-x-hidden;
+}

@@ -30,8 +30,17 @@
 
 
 .window-bar {
-  @apply relative flex justify-between items-center
+  @apply relative flex items-center justify-between 
          bg-[#2c2c2c] px-4 py-2 font-bold text-white cursor-grab select-none;
+}
+
+.window-title {
+  @apply flex-1 min-w-0 overflow-hidden whitespace-nowrap text-ellipsis 
+         text-xl text-center px-4;
+}
+
+.window-controls {
+  @apply flex items-center gap-2;
 }
 
 
@@ -110,7 +119,7 @@ body.subwindow-maximized .graph-subwindow:not(.maximized) {
 }
 
 .setic-result {
-  @apply p-4;
+  @apply p-4 mt-2;
 }
 
 .setic-result p {
@@ -138,7 +147,7 @@ body.subwindow-maximized .graph-subwindow:not(.maximized) {
 }
 
 .setic-wrapper button {
-  @apply px-5 py-3 text-lg font-bold text-white bg-gray-600 border-[#555] hover:bg-gray-500 rounded-lg cursor-pointer;
+  @apply px-5 py-3 text-lg font-bold text-white bg-gray-600 border-[#555] hover:bg-gray-500 rounded-lg cursor-pointer mt-5;
 }
 
 .restore-all-button-wrapper {
@@ -383,4 +392,175 @@ body.subwindow-maximized .graph-subwindow:not(.maximized) {
   background-repeat: no-repeat;
   background-position: center;
   @apply block w-6 h-6 bg-transparent mb-2;
+}
+
+.loading-spinner {
+  @apply inline-block w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin;
+}
+
+
+/*
+  .datepicker-stack {
+    @apply flex flex-col items-center gap-1 text-white font-medium;
+  }
+
+  .date-separator {
+    @apply text-[1.2rem] text-slate-400;
+  }
+
+  .datepicker-wrapper {
+    @apply relative w-fit flex justify-center;
+  }
+
+  .datepicker-display {
+    @apply px-4 py-2 text-white rounded-md text-center cursor-pointer min-w-[200px] bg-slate-800;
+  }
+
+  .datepicker-invisible {
+    @apply absolute inset-0 opacity-0 pointer-events-auto;
+  }
+*/
+
+.setic-bar-fill.S { @apply bg-[#e67373]; }
+.setic-bar-fill.E { @apply bg-[#82e673]; }
+.setic-bar-fill.T { @apply bg-[#73abe6]; }
+.setic-bar-fill.I { @apply bg-[#dee673]; }
+.setic-bar-fill.C { @apply bg-[#9473e6]; }
+.setic-bar-fill.R { @apply bg-[#a1a1a1]; }
+
+.setic-wrapper,
+.setic-result,
+.sentiment-breakdown,
+.setic-engagement-wrapper,
+.setic-trust-breakdown,
+.setic-influence-breakdown,
+.setic-consistency-breakdown {
+  @apply mx-auto w-fit px-8 py-4;
+}
+
+.setic-sentiment-breakdown,
+.setic-trust-breakdown,
+.setic-influence-breakdown,
+.setic-consistency-breakdown {
+  @apply mt-6 mb-6 bg-neutral-800/50 rounded-2xl p-2 shadow px-8 py-4;
+}
+
+.setic-sentiment-breakdown strong,
+.setic-engagement-wrapper strong,
+.setic-trust-breakdown strong,
+.setic-influence-breakdown strong,
+.setic-consistency-breakdown strong {
+  @apply text-[#5f8ef3] text-xl;
+}
+
+.setic-sentiment-breakdown p,
+.setic-engagement-wrapper p,
+.setic-trust-breakdown p,
+.setic-influence-breakdown p,
+.setic-consistency-breakdown p {
+  @apply text-white/90 text-xl;
+}
+
+
+.setic-bar-track.reputation {
+  @apply w-[65%] h-8 min-w-[400px];
+}
+
+.setic-bar-track {
+  @apply w-[50%] min-w-[300px];
+}
+
+
+.setic-bar-wrapper.clickable:hover {
+  @apply opacity-90;
+}
+
+.setic-bar-fill-posts {
+  @apply w-1/2 bg-[#e196e1] text-black text-center;
+}
+
+.setic-bar-fill-comments {
+  @apply w-1/2 bg-[#e1af96] text-black text-center;
+}
+
+.setic-bar-track {
+  @apply flex h-6 bg-gray-300 rounded-2xl overflow-hidden shadow-lg shadow-white/15;
+}
+
+.setic-bar-label {
+  @apply text-xl mb-2 mt-2;
+}
+
+.setic-bar-label-text {
+  @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-xs font-bold whitespace-nowrap pointer-events-none;
+}
+
+.setic-bar-fill span {
+  @apply text-lg
+}
+
+.sentiment-breakdown {
+  @apply mt-6 mb-6 bg-neutral-800/50 rounded-2xl;
+}
+
+.sentiment-breakdown p {
+  @apply font-semibold text-xl mt-0 mb-0 p-2;
+}
+
+.sentiment-breakdown ul {
+  @apply max-h-[300px] overflow-y-auto my-5;
+}
+
+.list-disc {
+  @apply text-lg p-2 mt-0;
+}
+
+
+.setic-engagement-wrapper {
+  @apply rounded-2xl p-4 mt-6 mb-6 space-y-4 bg-neutral-800/50 shadow;
+}
+
+.setic-engagement-wrapper p {
+  @apply font-bold text-xl;
+}
+
+.setic-engagement-wrapper .setic-table-scroll {
+  @apply max-h-[300px] overflow-y-auto overflow-x-auto;
+}
+
+.setic-table-scroll {
+  @apply max-h-[300px] overflow-x-auto overflow-y-auto w-full;
+}
+
+.setic-engagement-table {
+  @apply min-w-full text-sm text-left border bg-neutral-800/50;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.setic-engagement-wrapper .setic-table-scroll {
+  @apply max-h-[300px] overflow-y-auto overflow-x-auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+.setic-engagement-table th,
+.setic-engagement-table td {
+  @apply px-2 py-1 text-base text-center align-middle whitespace-nowrap;
+}
+
+.setic-engagement-thead {
+  @apply bg-gray-100;
+}
+
+.setic-engagement-row {
+  @apply border-t;
+}
+
+.setic-engagement-summary {
+  @apply mt-2 border-t-2 border-dashed border-gray-200 text-white;
+}
+
+.setic-trust-breakdown ul {
+  @apply max-h-[300px] overflow-y-auto my-5;
 }

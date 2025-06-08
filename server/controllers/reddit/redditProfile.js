@@ -138,35 +138,47 @@ function buildMeaningfulUpdate(basePath, data, updateDoc) {
 }
 
 exports.getRedditProfile = async (req, res) => {
-  const { username } = req.body;
-  const userID = req.cookies.userID;
+  const { username, userID: userIDFromBody } = req.body;
+  const userID = req.cookies.userID || userIDFromBody;
 
-  if (!username) return res.status(400).json({ error: 'Invalid Reddit username format' });
+
+  if (userID && typeof userID !== 'string') {
+    return res.status(401).json({ error: 'Invalid userID. Please login or provide a valid session.' });
+  }
+
+  if (!username || typeof username !== 'string' || !username.trim()) {
+    return res.status(400).json({ error: 'Missing or invalid Reddit username.' });
+  }
 
   const db = getDb();
   const accountsCol = db.collection(dbAccounts);
   const profilesCol = db.collection(dbProfiles);
+
+  let userAccount = null;
+  if (userID) {
+    userAccount = await accountsCol.findOne({ id: userID });
+    if (!userAccount) {
+      return res.status(401).json({ error: 'Invalid user id. User not found.' });
+    }
+  }
 
   let ownerMode = false;
   let token = null;
   const platform = 'reddit';
   let tokenInvalid = false;
 
-  if (userID) {
-    const userAccount = await accountsCol.findOne({ id: userID });
-    if (userAccount) {
-      const isOwner = userAccount.ownedProfiles?.find(p => p.platform === platform && p.user === username);
-      if (isOwner) {
-        token = isOwner.reddit_token || null;
-        ownerMode = true;
-      } else {
-        const alreadyAssociated = userAccount.associatedProfiles?.some(p => p.platform === platform && p.user === username);
-        if (!alreadyAssociated) {
-          await accountsCol.updateOne(
-            { id: userID },
-            { $push: { associatedProfiles: { platform, user: username } } }
-          );
-        }
+  if (userAccount) {
+    const isOwner = userAccount.ownedProfiles?.find(p => p.platform === platform && p.user === username);
+    if (isOwner) {
+      token = isOwner.reddit_token || null;
+      ownerMode = true;
+    } else {
+      const alreadyAssociated = userAccount.associatedProfiles?.some(p => p.platform === platform && p.user === username);
+      if (!alreadyAssociated) {
+        await accountsCol.updateOne(
+          { id: userID },
+          { $push: { associatedProfiles: { platform, user: username } } }
+        );
       }
     }
   }

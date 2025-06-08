@@ -2,7 +2,12 @@ const fetch = require('node-fetch');
 const { getDb, dbAccounts } = require('../../services/mongo');
 
 exports.authBlueskyProfile = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, userID: userIDFromBody } = req.body;
+  const userID = req.cookies.userID || userIDFromBody;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Missing username or password' });
+  }
 
   try {
     const response = await fetch('https://bsky.social/xrpc/com.atproto.server.createSession', {
@@ -20,7 +25,6 @@ exports.authBlueskyProfile = async (req, res) => {
     const { accessJwt, refreshJwt, handle, did } = data;
     const normalizedHandle = handle.toLowerCase();
 
-    const userID = req.cookies.userID;
     if (userID) {
       const db = getDb();
       const accounts = db.collection(dbAccounts);
@@ -70,3 +74,4 @@ exports.authBlueskyProfile = async (req, res) => {
     res.status(500).json({ error: 'Failed to authenticate with Bluesky.' });
   }
 };
+

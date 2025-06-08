@@ -34,8 +34,8 @@ function buildMeaningfulUpdate(basePath, data, updateDoc) {
 
 exports.getBlueskyProfile = async (req, res) => {
   try {
-    const { username } = req.body;
-    const userID = req.cookies.userID;
+  const { username, userID: userIDFromBody } = req.body;
+  const userID = req.cookies.userID || userIDFromBody;
 
     if (!username) return res.status(400).json({ error: 'Invalid Bluesky username format' });
 
