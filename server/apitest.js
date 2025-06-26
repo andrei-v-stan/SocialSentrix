@@ -138,8 +138,7 @@ async function main() {
             username,
             userID,
             start: startDateTime,
-            end: endDateTime,
-            dryRun: 'false'
+            end: endDateTime
           },
           username,
           userID
@@ -191,7 +190,7 @@ async function main() {
         const username = readline.question(`Enter Bluesky username (default: ${defaultBlueskyUser}): `) || defaultBlueskyUser;
 
         await makeRequest({
-          platform: 'reddit',
+          platform: 'bluesky',
           endpoint: '/api/bluesky/setic',
           method: 'GET',
           query: {
@@ -199,7 +198,6 @@ async function main() {
             userID,
             start: startDateTime,
             end: endDateTime,
-            dryRun: 'false'
           },
           username,
           userID
@@ -229,7 +227,6 @@ async function main() {
           console.error('❌ Could not login:', data);
         }
 
-        break;
         break;
       }
       case '0':

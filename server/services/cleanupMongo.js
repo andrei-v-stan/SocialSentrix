@@ -41,18 +41,6 @@ function startScheduledCleanup() {
   });
 }
 
-async function removePending({ field, value, collectionPending }) {
-  try {
-    const db = await connectMongo();
-    const collection = db.collection(collectionPending);
-    const result = await collection.deleteMany({ [field]: value });
-    console.log(`🗑️ Removed ${result.deletedCount} from ${collectionPending} where ${field} = ${value}`);
-    return result.deletedCount;
-  } catch (err) {
-    console.error('❌ removePending error:', err);
-    return null;
-  }
-}
 
 async function removePending({ value, collectionPending }) {
   try {
