@@ -681,9 +681,11 @@ export default function SortableResultWindow({ id, title, content, platform, use
 
                                     {showEngagementBreakdown && (
                                       (seticResult.E?.totalCount || 0) === 0 ? (
-                                        <p className="text-sm italic text-gray-500">No user activity during selected period.</p>
+                                        <div className="setic-engagement-wrapper">
+                                          <p className="text-sm italic text-gray-500">No user activity during selected period.</p>
+                                        </div>
                                       ) : (
-                                        <div className="setic-engagement-breakdown">
+                                        <div className="setic-engagement-wrapper">
                                           <p><strong>Total Posts/Reposts/Comments:</strong> {seticResult.E.totalCount}</p>
                                           <p><strong>Likes:</strong> {formatNumber(seticResult.E.likes)}</p>
                                           <p><strong>Replies:</strong> {formatNumber(seticResult.E.replies)}</p>
